@@ -11,6 +11,7 @@
 #include <ctime>
 #include <cctype>
 #include <cstdlib>
+#include <cmath>
 #include <iomanip>
 
 namespace Binance
@@ -27,13 +28,10 @@ static RestApi &queryHandle(Parameters &params)
     return query;
 }
 
-quote_t getQuote(Parameters &params)
+quote_t getQuote(Parameters &params, const std::string& currencyPair)
 {
     auto &exchange = queryHandle(params);
-    std::string x;
-    //TODO: build real currency string
-    x += "/api/v3/ticker/bookTicker?symbol=";
-    x += "BTCUSDT";
+    std::string x = "/api/v3/ticker/bookTicker?symbol=" + currencyPair;
     //params.leg2.c_str();
     unique_json root{exchange.getRequest(x)};
     double quote = atof(json_string_value(json_object_get(root.get(), "bidPrice")));
@@ -146,12 +144,12 @@ double getLimitPrice(Parameters &params, double volume, bool isBid)
     unique_json root{exchange.getRequest("/api/v1/depth?symbol=BTCUSDT")};
     auto bidask = json_object_get(root.get(), isBid ? "bids" : "asks");
     *params.logFile << "<Binance Looking for a limit price to fill "
-                    << std::setprecision(8) << fabs(volume) << " Legx...\n";
+                    << std::setprecision(8) << std::fabs(volume) << " Legx...\n";
     double tmpVol = 0.0;
     double p = 0.0;
     double v;
     int i = 0;
-    while (tmpVol < fabs(volume) * params.orderBookFactor)
+    while (tmpVol < std::fabs(volume) * params.orderBookFactor)
     {
         p = atof(json_string_value(json_array_get(json_array_get(bidask, i), 0)));
         v = atof(json_string_value(json_array_get(json_array_get(bidask, i), 1)));

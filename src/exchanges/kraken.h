@@ -9,7 +9,7 @@ struct Parameters;
 
 namespace Kraken {
 
-quote_t getQuote(Parameters& params);
+quote_t getQuote(Parameters& params, const std::string& currencyPair);
 
 double getAvail(Parameters& params, std::string currency);
 

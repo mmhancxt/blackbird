@@ -10,6 +10,7 @@
 #include <vector>
 #include <array>
 #include <ctime>
+#include <unordered_map>
 
 namespace Kraken
 {
@@ -18,6 +19,13 @@ namespace Kraken
 static unique_json krakenTicker = nullptr;
 static bool krakenGotTicker = false;
 
+static std::unordered_map<std::string, std::string> s_CcyPairToQueryResult =
+{
+  {"BTCEUR", "XXBTZEUR"},
+  {"ETHEUR", "XETHZEUR"},
+  {"ADAEUR", "ADAEUR"},
+  {"DOGEEUR", "XDGEUR"}
+};
 
 static RestApi &queryHandle(Parameters &params)
 {
@@ -26,7 +34,7 @@ static RestApi &queryHandle(Parameters &params)
   return query;
 }
 
-quote_t getQuote(Parameters &params)
+quote_t getQuote(Parameters &params, const std::string& currencyPair)
 {
   if (krakenGotTicker)
   {
@@ -35,14 +43,25 @@ quote_t getQuote(Parameters &params)
   else
   {
     auto &exchange = queryHandle(params);
-    krakenTicker.reset(exchange.getRequest("/0/public/Ticker?pair=XXBTZUSD"));
+    // TODO to request more currency
+    std::string query = "/0/public/Ticker?pair=" + currencyPair;
+    krakenTicker.reset(exchange.getRequest(query));
     krakenGotTicker = true;
   }
   json_t *root = krakenTicker.get();
-  const char *quote = json_string_value(json_array_get(json_object_get(json_object_get(json_object_get(root, "result"), "XXBTZUSD"), "b"), 0));
+
+  const auto it = s_CcyPairToQueryResult.find(currencyPair);
+  std::string queryResultPair;
+  if (it != s_CcyPairToQueryResult.end())
+  {
+    queryResultPair = it->second;
+  }
+  const char *quote = json_string_value(json_array_get(json_object_get(json_object_get(json_object_get(root, "result"),
+    queryResultPair.c_str()), "b"), 0));
   auto bidValue = quote ? std::stod(quote) : 0.0;
 
-  quote = json_string_value(json_array_get(json_object_get(json_object_get(json_object_get(root, "result"), "XXBTZUSD"), "a"), 0));
+  quote = json_string_value(json_array_get(json_object_get(json_object_get(json_object_get(root, "result"),
+    queryResultPair.c_str()), "a"), 0));
   auto askValue = quote ? std::stod(quote) : 0.0;
 
   return std::make_pair(bidValue, askValue);
@@ -240,8 +259,8 @@ void testKraken()
 
   std::string orderId;
 
-  std::cout << "Current value LEG1_LEG2 bid: " << getQuote(params).bid() << std::endl;
-  std::cout << "Current value LEG1_LEG2 ask: " << getQuote(params).ask() << std::endl;
+  //std::cout << "Current value LEG1_LEG2 bid: " << getQuote(params).bid() << std::endl;
+  //std::cout << "Current value LEG1_LEG2 ask: " << getQuote(params).ask() << std::endl;
   std::cout << "Current balance BTC: " << getAvail(params, "btc") << std::endl;
   std::cout << "Current balance USD: " << getAvail(params, "usd") << std::endl;
   std::cout << "Current balance ETH: " << getAvail(params, "eth") << std::endl;

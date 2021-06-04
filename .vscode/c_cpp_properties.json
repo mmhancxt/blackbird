@@ -32,7 +32,11 @@
             "macFrameworkPath": [
                 "/System/Library/Frameworks",
                 "/Library/Frameworks"
-            ]
+            ],
+            "compilerPath": "/usr/local/bin/gcc-9",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++14",
+            "configurationProvider": "ms-vscode.cmake-tools"
         },
         {
             "name": "Linux",
@@ -51,7 +55,10 @@
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
-            }
+            },
+            "compilerPath": "/usr/local/bin/gcc-9",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++14"
         },
         {
             "name": "Win32",
@@ -71,8 +78,11 @@
                 ],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
-            }
+            },
+            "compilerPath": "/usr/local/bin/gcc-9",
+            "cStandard": "gnu17",
+            "cppStandard": "gnu++14"
         }
     ],
-    "version": 3
+    "version": 4
 }

@@ -2,6 +2,7 @@
 #define PARAMETERS_H
 
 #include "unique_sqlite.hpp"
+#include "instrument.h"
 
 #include <fstream>
 #include <string>
@@ -11,7 +12,7 @@
 // Stores all the parameters defined
 // in the configuration file.
 struct Parameters {
-  
+
   std::vector<std::string> exchName;
   std::vector<double> fees;
   std::vector<bool> canShort;
@@ -27,8 +28,9 @@ struct Parameters {
   unsigned trailingCount;
   double orderBookFactor;
   bool isDemoMode;
-  std::string leg1;
-  std::string leg2;
+  std::vector<CurrencyPair> tradedPair;
+  //std::string leg1;
+  //std::string leg2;
   bool verbose;
   std::ofstream* logFile;
   unsigned interval;

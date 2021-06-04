@@ -26,7 +26,7 @@ acquire(std::unique_ptr<T, deleter> &owner) { return owner;   }
 
 int createDbConnection(Parameters& params) {
   int res = sqlite3_open(params.dbFile.c_str(), acquire(params.dbConn));
-  
+
   if (res != SQLITE_OK)
     std::cerr << sqlite3_errmsg(params.dbConn.get()) << std::endl;
 
@@ -34,9 +34,9 @@ int createDbConnection(Parameters& params) {
 }
 
 int createTable(std::string exchangeName, Parameters& params) {
-  
+
   std::string query = "CREATE TABLE IF NOT EXISTS `" + exchangeName +
-                      "` (Datetime DATETIME NOT NULL, bid DECIMAL(8, 2), ask DECIMAL(8, 2));";
+                      "` (CurrencyPair TEXT NOT NULL, Datetime DATETIME NOT NULL, bid DECIMAL(8, 2), ask DECIMAL(8, 2));";
   unique_sqlerr errmsg;
   int res = sqlite3_exec(params.dbConn.get(), query.c_str(), nullptr, nullptr, acquire(errmsg));
   if (res != SQLITE_OK)
@@ -45,9 +45,11 @@ int createTable(std::string exchangeName, Parameters& params) {
   return res;
 }
 
-int addBidAskToDb(std::string exchangeName, std::string datetime, double bid, double ask, Parameters& params) {
+int addBidAskToDb(const std::string& exchangeName, const std::string& currencyPair,
+  std::string datetime, double bid, double ask, Parameters& params)
+{
   std::string query = "INSERT INTO `" + exchangeName +
-                      "` VALUES ('"   + datetime +
+                      "` VALUES ('"   + currencyPair + "','" + datetime +
                       "'," + std::to_string(bid) +
                       "," + std::to_string(ask) + ");";
   unique_sqlerr errmsg;

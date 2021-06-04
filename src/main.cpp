@@ -4,6 +4,7 @@
 #include "curl_fun.h"
 #include "db_fun.h"
 #include "parameters.h"
+#include "instrument.h"
 #include "check_entry_exit.h"
 #include "exchanges/bitfinex.h"
 #include "exchanges/okcoin.h"
@@ -29,6 +30,7 @@
 #include <chrono>
 #include <thread>
 #include <cmath>
+#include <unordered_map>
 #include <algorithm>
 
 
@@ -36,7 +38,7 @@
 // These functions contain everything needed to communicate with
 // the exchanges, like getting the quotes or the active positions.
 // Each function is implemented in the files located in the 'exchanges' folder.
-typedef quote_t (*getQuoteType) (Parameters& params);
+typedef quote_t (*getQuoteType) (Parameters& params, const std::string& currencyPair);
 typedef double (*getAvailType) (Parameters& params, std::string currency);
 typedef std::string (*sendOrderType) (Parameters& params, std::string direction, double quantity, double price);
 typedef bool (*isOrderCompleteType) (Parameters& params, std::string orderId);
@@ -66,7 +68,7 @@ int main(int argc, char** argv) {
   // Does some verifications about the parameters
   if (!params.isDemoMode) {
     if (!params.useFullExposure) {
-      if (params.testedExposure < 10.0 && params.leg2.compare("USD") == 0) {
+      if (params.testedExposure < 10.0 /*&& params.leg2.compare("USD") == 0*/) {
         // TODO do the same check for other currencies. Is there a limi?
         std::cout << "ERROR: Minimum USD needed: $10.00" << std::endl;
         std::cout << "       Otherwise some exchanges will reject the orders\n" << std::endl;
@@ -89,87 +91,26 @@ int main(int argc, char** argv) {
   }
 
   // We only trade BTC/USD for the moment
+  /*
   if (params.leg1.compare("BTC") != 0 || params.leg2.compare("USD") != 0) {
     std::cout << "ERROR: Valid currency pair is only BTC/USD for now.\n" << std::endl;
     exit(EXIT_FAILURE);
-  }
+  }*/
 
   // Function arrays containing all the exchanges functions
   // using the 'typedef' declarations from above.
-  getQuoteType getQuote[13];
-  getAvailType getAvail[13];
-  sendOrderType sendLongOrder[13];
-  sendOrderType sendShortOrder[13];
-  isOrderCompleteType isOrderComplete[13];
-  getActivePosType getActivePos[13];
-  getLimitPriceType getLimitPrice[13];
-  std::string dbTableName[13];
+  getQuoteType getQuote[2];
+  getAvailType getAvail[2];
+  sendOrderType sendLongOrder[2];
+  sendOrderType sendShortOrder[2];
+  isOrderCompleteType isOrderComplete[2];
+  getActivePosType getActivePos[2];
+  getLimitPriceType getLimitPrice[2];
+  std::string dbTableName[2];
 
 
   // Adds the exchange functions to the arrays for all the defined exchanges
   int index = 0;
-  if (params.bitfinexEnable &&
-     (params.bitfinexApi.empty() == false || params.isDemoMode)) {
-    params.addExchange("Bitfinex", params.bitfinexFees, true, true);
-    getQuote[index] = Bitfinex::getQuote;
-    getAvail[index] = Bitfinex::getAvail;
-    sendLongOrder[index] = Bitfinex::sendLongOrder;
-    sendShortOrder[index] = Bitfinex::sendShortOrder;
-    isOrderComplete[index] = Bitfinex::isOrderComplete;
-    getActivePos[index] = Bitfinex::getActivePos;
-    getLimitPrice[index] = Bitfinex::getLimitPrice;
-
-    dbTableName[index] = "bitfinex";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  if (params.okcoinEnable &&
-     (params.okcoinApi.empty() == false || params.isDemoMode)) {
-    params.addExchange("OKCoin", params.okcoinFees, false, true);
-    getQuote[index] = OKCoin::getQuote;
-    getAvail[index] = OKCoin::getAvail;
-    sendLongOrder[index] = OKCoin::sendLongOrder;
-    sendShortOrder[index] = OKCoin::sendShortOrder;
-    isOrderComplete[index] = OKCoin::isOrderComplete;
-    getActivePos[index] = OKCoin::getActivePos;
-    getLimitPrice[index] = OKCoin::getLimitPrice;
-
-    dbTableName[index] = "okcoin";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  if (params.bitstampEnable &&
-     (params.bitstampClientId.empty() == false || params.isDemoMode)) {
-    params.addExchange("Bitstamp", params.bitstampFees, false, true);
-    getQuote[index] = Bitstamp::getQuote;
-    getAvail[index] = Bitstamp::getAvail;
-    sendLongOrder[index] = Bitstamp::sendLongOrder;
-    isOrderComplete[index] = Bitstamp::isOrderComplete;
-    getActivePos[index] = Bitstamp::getActivePos;
-    getLimitPrice[index] = Bitstamp::getLimitPrice;
-
-    dbTableName[index] = "bitstamp";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  if (params.geminiEnable &&
-     (params.geminiApi.empty() == false || params.isDemoMode)) {
-    params.addExchange("Gemini", params.geminiFees, false, true);
-    getQuote[index] = Gemini::getQuote;
-    getAvail[index] = Gemini::getAvail;
-    sendLongOrder[index] = Gemini::sendLongOrder;
-    isOrderComplete[index] = Gemini::isOrderComplete;
-    getActivePos[index] = Gemini::getActivePos;
-    getLimitPrice[index] = Gemini::getLimitPrice;
-
-    dbTableName[index] = "gemini";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
   if (params.krakenEnable &&
      (params.krakenApi.empty() == false || params.isDemoMode)) {
     params.addExchange("Kraken", params.krakenFees, false, true);
@@ -182,126 +123,6 @@ int main(int argc, char** argv) {
     getLimitPrice[index] = Kraken::getLimitPrice;
 
     dbTableName[index] = "kraken";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  if (params.itbitEnable &&
-     (params.itbitApi.empty() == false || params.isDemoMode)) {
-    params.addExchange("ItBit", params.itbitFees, false, false);
-    getQuote[index] = ItBit::getQuote;
-    getAvail[index] = ItBit::getAvail;
-    getActivePos[index] = ItBit::getActivePos;
-    getLimitPrice[index] = ItBit::getLimitPrice;
-
-    dbTableName[index] = "itbit";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  if (params.wexEnable &&
-     (params.wexApi.empty() == false || params.isDemoMode)) {
-    params.addExchange("WEX", params.wexFees, false, true);
-    getQuote[index] = WEX::getQuote;
-    getAvail[index] = WEX::getAvail;
-    sendLongOrder[index] = WEX::sendLongOrder;
-    isOrderComplete[index] = WEX::isOrderComplete;
-    getActivePos[index] = WEX::getActivePos;
-    getLimitPrice[index] = WEX::getLimitPrice;
-
-    dbTableName[index] = "wex";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  if (params.poloniexEnable &&
-     (params.poloniexApi.empty() == false || params.isDemoMode)) {
-    params.addExchange("Poloniex", params.poloniexFees, true, false);
-    getQuote[index] = Poloniex::getQuote;
-    getAvail[index] = Poloniex::getAvail;
-    sendLongOrder[index] = Poloniex::sendLongOrder;
-    sendShortOrder[index] = Poloniex::sendShortOrder;
-    isOrderComplete[index] = Poloniex::isOrderComplete;
-    getActivePos[index] = Poloniex::getActivePos;
-    getLimitPrice[index] = Poloniex::getLimitPrice;
-
-    dbTableName[index] = "poloniex";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  if (params.gdaxEnable &&
-     (params.gdaxApi.empty() == false || params.isDemoMode)) {
-    params.addExchange("GDAX", params.gdaxFees, false, true);
-    getQuote[index] = GDAX::getQuote;
-    getAvail[index] = GDAX::getAvail;
-    getActivePos[index] = GDAX::getActivePos;
-    getLimitPrice[index] = GDAX::getLimitPrice;
-    sendLongOrder[index] = GDAX::sendLongOrder;
-    isOrderComplete[index] = GDAX::isOrderComplete;
-    dbTableName[index] = "gdax";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  if (params.quadrigaEnable &&
-         (params.quadrigaApi.empty() == false || params.isDemoMode)) {
-    params.addExchange("QuadrigaCX", params.quadrigaFees, false, true);
-    getQuote[index] = QuadrigaCX::getQuote;
-    getAvail[index] = QuadrigaCX::getAvail;
-    sendLongOrder[index] = QuadrigaCX::sendLongOrder;
-    isOrderComplete[index] = QuadrigaCX::isOrderComplete;
-    getActivePos[index] = QuadrigaCX::getActivePos;
-    getLimitPrice[index] = QuadrigaCX::getLimitPrice;
-
-    dbTableName[index] = "quadriga";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  if (params.exmoEnable &&
-         (params.exmoApi.empty() == false || params.isDemoMode)) {
-    params.addExchange("Exmo", params.exmoFees, false, true);
-    getQuote[index] = Exmo::getQuote;
-    getAvail[index] = Exmo::getAvail;
-    sendLongOrder[index] = Exmo::sendLongOrder;
-    isOrderComplete[index] = Exmo::isOrderComplete;
-    getActivePos[index] = Exmo::getActivePos;
-    getLimitPrice[index] = Exmo::getLimitPrice;
-
-    dbTableName[index] = "exmo";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  if (params.cexioEnable &&
-         (params.cexioApi.empty() == false || params.isDemoMode)) {
-    params.addExchange("Cexio", params.cexioFees, false, true);
-    getQuote[index] = Cexio::getQuote;
-    getAvail[index] = Cexio::getAvail;
-    sendLongOrder[index] = Cexio::sendLongOrder;
-    sendShortOrder[index] = Cexio::sendShortOrder;
-    isOrderComplete[index] = Cexio::isOrderComplete;
-    getActivePos[index] = Cexio::getActivePos;
-    getLimitPrice[index] = Cexio::getLimitPrice;
-
-    dbTableName[index] = "cexio";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  if (params.bittrexEnable &&
-      (params.bittrexApi.empty() == false || params.isDemoMode))
-  {
-    params.addExchange("Bittrex", params.bittrexFees, false, true);
-    getQuote[index] = Bittrex::getQuote;
-    getAvail[index] = Bittrex::getAvail;
-    sendLongOrder[index] = Bittrex::sendLongOrder;
-    sendShortOrder[index] = Bittrex::sendShortOrder;
-    isOrderComplete[index] = Bittrex::isOrderComplete;
-    getActivePos[index] = Bittrex::getActivePos;
-    getLimitPrice[index] = Bittrex::getLimitPrice;
-    dbTableName[index] = "bittrex";
     createTable(dbTableName[index], params);
 
     index++;
@@ -354,17 +175,32 @@ int main(int argc, char** argv) {
   }
 
   // Shows which pair we are trading (BTC/USD only for the moment)
-  logFile << "Pair traded: " << params.leg1 << "/" << params.leg2 << "\n" << std::endl;
+  logFile << "Pair traded: ";
+  for (const auto& ccyPair : params.tradedPair)
+  {
+    logFile << ccyPair;
+  }
+  logFile << std::endl;
 
   std::cout << "Log file generated: " << logFileName << "\nBlackbird is running... (pid " << getpid() << ")\n" << std::endl;
   int numExch = params.nbExch();
+
+  using ExchangePair = std::unordered_map<std::string, Bitcoin>;
+  std::vector<ExchangePair> exchangePairs;
+  exchangePairs.reserve(numExch);
   // The btcVec vector contains details about every exchange,
   // like fees, as specified in bitcoin.h
-  std::vector<Bitcoin> btcVec;
-  btcVec.reserve(numExch);
+  //std::vector<Bitcoin> btcVec;
+  //btcVec.reserve(numExch);
   // Creates a new Bitcoin structure within btcVec for every exchange we want to trade on
   for (int i = 0; i < numExch; ++i) {
-    btcVec.push_back(Bitcoin(i, params.exchName[i], params.fees[i], params.canShort[i], params.isImplemented[i]));
+    ExchangePair ccyPairs;
+    for (const auto& pair : params.tradedPair)
+    {
+      ccyPairs.insert({pair.ToString(), Bitcoin(i, params.exchName[i], pair, params.fees[i], params.canShort[i], params.isImplemented[i])});
+    }
+    exchangePairs.push_back(ccyPairs);
+    //btcVec.push_back(Bitcoin(i, params.exchName[i], params.fees[i], params.canShort[i], params.isImplemented[i]));
   }
 
   // Inits cURL connections
@@ -389,15 +225,16 @@ int main(int argc, char** argv) {
   // This is only done when not in Demo mode.
   std::vector<Balance> balance(numExch);
   if (!params.isDemoMode)
-    std::transform(getAvail, getAvail + numExch,
-                   begin(balance),
-                   [&params]( decltype(*getAvail) apply )
-                   {
-                     Balance tmp {};
-                     tmp.leg1 = apply(params, "btc");
-                     tmp.leg2 = apply(params, "usd");
-                     return tmp;
-                   } );
+   std::transform(getAvail, getAvail + numExch,
+                  begin(balance),
+                  [&params]( decltype(*getAvail) apply )
+                  {
+                    Balance tmp {};
+                    // TODO
+                    // tmp.leg1 = apply(params, "btc");
+                    // tmp.leg2 = apply(params, "usd");
+                    return tmp;
+                  } );
 
   // Checks for a restore.txt file, to see if
   // the program exited with an open position.
@@ -413,13 +250,15 @@ int main(int argc, char** argv) {
     } else if (!params.isImplemented[i]) {
       logFile << "n/a (API not implemented)" << std::endl;
     } else {
-      logFile << std::setprecision(2) << balance[i].leg2 << " " << params.leg2 << "\t"
-              << std::setprecision(6) << balance[i].leg1 << " " << params.leg1 << std::endl;
+      // TODO
+      // logFile << std::setprecision(2) << balance[i].leg2 << " " << params.leg2 << "\t"
+      //         << std::setprecision(6) << balance[i].leg1 << " " << params.leg1 << std::endl;
     }
-    if (balance[i].leg1 > 0.0050 && !inMarket) { // FIXME: hard-coded number
-      logFile << "ERROR: All " << params.leg1 << " accounts must be empty before starting Blackbird" << std::endl;
-      exit(EXIT_FAILURE);
-    }
+    // TODO
+    // if (balance[i].leg1 > 0.0050 && !inMarket) { // FIXME: hard-coded number
+    //   logFile << "ERROR: All " << params.leg1 << " accounts must be empty before starting Blackbird" << std::endl;
+    //   exit(EXIT_FAILURE);
+    // }
   }
   logFile << std::endl;
   logFile << "[ Cash exposure ]\n";
@@ -483,31 +322,45 @@ int main(int argc, char** argv) {
       }
     }
     // Gets the bid and ask of all the exchanges
-    for (int i = 0; i < numExch; ++i) {
-      auto quote = getQuote[i](params);
-      double bid = quote.bid();
-      double ask = quote.ask();
+    for (const auto& currencyPair : params.tradedPair)
+    {
+      const auto& ccyPair = currencyPair.ToString();
+      for (int i = 0; i < numExch; ++i) {
+        auto quote = getQuote[i](params, ccyPair);
+        double bid = quote.bid();
+        double ask = quote.ask();
 
-      // Saves the bid/ask into the SQLite database
-      addBidAskToDb(dbTableName[i], printDateTimeDb(currTime), bid, ask, params);
+        // Saves the bid/ask into the SQLite database
+        addBidAskToDb(dbTableName[i], ccyPair, printDateTimeDb(currTime), bid, ask, params);
 
-      // If there is an error with the bid or ask (i.e. value is null),
-      // we show a warning but we don't stop the loop.
-      if (bid == 0.0) {
-        logFile << "   WARNING: " << params.exchName[i] << " bid is null" << std::endl;
+        // If there is an error with the bid or ask (i.e. value is null),
+        // we show a warning but we don't stop the loop.
+        if (bid == 0.0) {
+          logFile << "   WARNING: " << params.exchName[i] << " bid is null" << std::endl;
+        }
+        if (ask == 0.0) {
+          logFile << "   WARNING: " << params.exchName[i] << " ask is null" << std::endl;
+        }
+        // Shows the bid/ask information in the log file
+        if (params.verbose) {
+          logFile << "   " << params.exchName[i] << ": \t"
+                  << ccyPair << ": \t"
+                  << std::setprecision(2)
+                  << bid << " / " << ask << std::endl;
+        }
+        // Updates the Bitcoin vector with the latest bid/ask data
+        auto it = exchangePairs[i].find(ccyPair);
+        if (it != exchangePairs[i].end())
+        {
+          auto& ccyPairs = it->second;
+          ccyPairs.updateData(quote);
+          curl_easy_reset(params.curl);
+        }
+        else
+        {
+          logFile << "   ERROR: can't find ExchangePairs for " << ccyPair << " " << i << std::endl;
+        }
       }
-      if (ask == 0.0) {
-        logFile << "   WARNING: " << params.exchName[i] << " ask is null" << std::endl;
-      }
-      // Shows the bid/ask information in the log file
-      if (params.verbose) {
-        logFile << "   " << params.exchName[i] << ": \t"
-                << std::setprecision(2)
-                << bid << " / " << ask << std::endl;
-      }
-      // Updates the Bitcoin vector with the latest bid/ask data
-      btcVec[i].updateData(quote);
-      curl_easy_reset(params.curl);
     }
     if (params.verbose) {
       logFile << "   ----------------------------" << std::endl;
@@ -515,25 +368,27 @@ int main(int argc, char** argv) {
     // Stores all the spreads in arrays to
     // compute the volatility. The volatility
     // is not used for the moment.
-    if (params.useVolatility) {
-      for (int i = 0; i < numExch; ++i) {
-        for (int j = 0; j < numExch; ++j) {
-          if (i != j) {
-            if (btcVec[j].getHasShort()) {
-              double longMidPrice = btcVec[i].getMidPrice();
-              double shortMidPrice = btcVec[j].getMidPrice();
-              if (longMidPrice > 0.0 && shortMidPrice > 0.0) {
-                if (res.volatility[i][j].size() >= params.volatilityPeriod) {
-                  res.volatility[i][j].pop_back();
-                }
-                res.volatility[i][j].push_front((longMidPrice - shortMidPrice) / longMidPrice);
-              }
-            }
-          }
-        }
-      }
-    }
+    // TODO
+    // if (params.useVolatility) {
+    //   for (int i = 0; i < numExch; ++i) {
+    //     for (int j = 0; j < numExch; ++j) {
+    //       if (i != j) {
+    //         if (btcVec[j].getHasShort()) {
+    //           double longMidPrice = btcVec[i].getMidPrice();
+    //           double shortMidPrice = btcVec[j].getMidPrice();
+    //           if (longMidPrice > 0.0 && shortMidPrice > 0.0) {
+    //             if (res.volatility[i][j].size() >= params.volatilityPeriod) {
+    //               res.volatility[i][j].pop_back();
+    //             }
+    //             res.volatility[i][j].push_front((longMidPrice - shortMidPrice) / longMidPrice);
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
     // Looks for arbitrage opportunities on all the exchange combinations
+    /* TODO
     if (!inMarket) {
       for (int i = 0; i < numExch; ++i) {
         for (int j = 0; j < numExch; ++j) {
@@ -675,10 +530,11 @@ int main(int argc, char** argv) {
           res.priceShortOut = limPriceShort;
           res.printExitInfo(*params.logFile);
 
-          logFile.precision(6);
-          logFile << params.leg1 << " exposure on " << params.exchName[res.idExchLong] << ": " << volumeLong << '\n'
-                  << params.leg1 << " exposure on " << params.exchName[res.idExchShort] << ": " << volumeShort << '\n'
-                  << std::endl;
+          // TODO
+          // logFile.precision(6);
+          // logFile << params.leg1 << " exposure on " << params.exchName[res.idExchLong] << ": " << volumeLong << '\n'
+          //         << params.leg1 << " exposure on " << params.exchName[res.idExchShort] << ": " << volumeShort << '\n'
+          //         << std::endl;
           auto longOrderId = sendLongOrder[res.idExchLong](params, "sell", fabs(btcUsed[res.idExchLong]), limPriceLong);
           auto shortOrderId = sendShortOrder[res.idExchShort](params, "buy", fabs(btcUsed[res.idExchShort]), limPriceShort);
           logFile << "Waiting for the two orders to be filled..." << std::endl;
@@ -748,6 +604,7 @@ int main(int argc, char** argv) {
       }
       if (params.verbose) logFile << '\n';
     }
+    */
     // Moves to the next iteration, unless
     // the maxmum is reached.
     timeinfo.tm_sec += params.interval;

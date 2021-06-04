@@ -19,7 +19,7 @@ static std::string findConfigFile(std::string fileName) {
   // Unix user settings directory
   {
     char *home = getenv("HOME");
-    
+
     if (home) {
       std::string prefix = std::string(home) + "/.config";
       std::string fullpath = prefix + "/" + fileName;
@@ -64,6 +64,20 @@ static std::string findConfigFile(std::string fileName) {
   return fileName;
 }
 
+void Split(const std::string& input, std::vector<std::string>& output, char delimiter)
+{
+  std::string s(input);
+  size_t pos = 0;
+  std::string token;
+  while ((pos = s.find(delimiter)) != std::string::npos)
+  {
+    token = s.substr(0, pos);
+    output.push_back(token);
+    s.erase(0, pos + 1);
+  }
+  output.push_back(s);
+}
+
 Parameters::Parameters(std::string fileName) {
   std::ifstream configFile(findConfigFile(fileName));
   if (!configFile.is_open()) {
@@ -79,8 +93,18 @@ Parameters::Parameters(std::string fileName) {
   trailingCount = getUnsigned(getParameter("TrailingSpreadCount", configFile));
   orderBookFactor = getDouble(getParameter("OrderBookFactor", configFile));
   isDemoMode = getBool(getParameter("DemoMode", configFile));
-  leg1 = getParameter("Leg1", configFile);
-  leg2 = getParameter("Leg2", configFile);
+
+  const std::string ccyList = getParameter("SpotCurrencyPairList", configFile);
+  std::vector<std::string> pairs;
+  Split(ccyList, pairs, ';');
+
+  for (const auto& pair : pairs)
+  {
+    tradedPair.emplace_back(CurrencyPair{pair.substr(0, 3), pair.substr(4)});
+  }
+
+  //leg1 = getParameter("Leg1", configFile);
+  //leg2 = getParameter("Leg2", configFile);
   verbose = getBool(getParameter("Verbose", configFile));
   interval = getUnsigned(getParameter("Interval", configFile));
   debugMaxIteration = getUnsigned(getParameter("DebugMaxIteration", configFile));
