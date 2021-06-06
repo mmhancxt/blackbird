@@ -22,6 +22,8 @@
 #include "exchanges/binance.h"
 #include "utils/send_email.h"
 #include "getpid.h"
+#include "Market.h"
+#include "Feeder.h"
 
 #include <curl/curl.h>
 #include <iostream>
@@ -32,18 +34,19 @@
 #include <cmath>
 #include <unordered_map>
 #include <algorithm>
+#include <memory>
 
 
 // The 'typedef' declarations needed for the function arrays
 // These functions contain everything needed to communicate with
 // the exchanges, like getting the quotes or the active positions.
 // Each function is implemented in the files located in the 'exchanges' folder.
-typedef quote_t (*getQuoteType) (Parameters& params, const std::string& currencyPair);
-typedef double (*getAvailType) (Parameters& params, std::string currency);
-typedef std::string (*sendOrderType) (Parameters& params, std::string direction, double quantity, double price);
-typedef bool (*isOrderCompleteType) (Parameters& params, std::string orderId);
-typedef double (*getActivePosType) (Parameters& params);
-typedef double (*getLimitPriceType) (Parameters& params, double volume, bool isBid);
+// typedef quote_t (*getQuoteType) (Parameters& params, const std::string& currencyPair);
+// typedef double (*getAvailType) (Parameters& params, std::string currency);
+// typedef std::string (*sendOrderType) (Parameters& params, std::string direction, double quantity, double price);
+// typedef bool (*isOrderCompleteType) (Parameters& params, std::string orderId);
+// typedef double (*getActivePosType) (Parameters& params);
+// typedef double (*getLimitPriceType) (Parameters& params, double volume, bool isBid);
 
 
 // This structure contains the balance of both exchanges,
@@ -81,15 +84,6 @@ int main(int argc, char** argv) {
     }
   }
 
-// Connects to the SQLite3 database.
-// This database is used to collect bid and ask information
-// from the exchanges. Not really used for the moment, but
-// would be useful to collect historical bid/ask data.
-  if (createDbConnection(params) != 0) {
-    std::cerr << "ERROR: cannot connect to the database \'" << params.dbFile << "\'\n" << std::endl;
-    exit(EXIT_FAILURE);
-  }
-
   // We only trade BTC/USD for the moment
   /*
   if (params.leg1.compare("BTC") != 0 || params.leg2.compare("USD") != 0) {
@@ -99,55 +93,14 @@ int main(int argc, char** argv) {
 
   // Function arrays containing all the exchanges functions
   // using the 'typedef' declarations from above.
-  getQuoteType getQuote[2];
   getAvailType getAvail[2];
   sendOrderType sendLongOrder[2];
   sendOrderType sendShortOrder[2];
   isOrderCompleteType isOrderComplete[2];
   getActivePosType getActivePos[2];
   getLimitPriceType getLimitPrice[2];
-  std::string dbTableName[2];
+  //std::string dbTableName[2];
 
-
-  // Adds the exchange functions to the arrays for all the defined exchanges
-  int index = 0;
-  if (params.krakenEnable &&
-     (params.krakenApi.empty() == false || params.isDemoMode)) {
-    params.addExchange("Kraken", params.krakenFees, false, true);
-    getQuote[index] = Kraken::getQuote;
-    getAvail[index] = Kraken::getAvail;
-    sendLongOrder[index] = Kraken::sendLongOrder;
-    sendShortOrder[index] = Kraken::sendShortOrder;
-    isOrderComplete[index] = Kraken::isOrderComplete;
-    getActivePos[index] = Kraken::getActivePos;
-    getLimitPrice[index] = Kraken::getLimitPrice;
-
-    dbTableName[index] = "kraken";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  if (params.binanceEnable &&
-      (params.binanceApi.empty() == false || params.isDemoMode))
-  {
-    params.addExchange("Binance", params.binanceFees, false, true);
-    getQuote[index] = Binance::getQuote;
-    getAvail[index] = Binance::getAvail;
-    sendLongOrder[index] = Binance::sendLongOrder;
-    sendShortOrder[index] = Binance::sendShortOrder;
-    isOrderComplete[index] = Binance::isOrderComplete;
-    getActivePos[index] = Binance::getActivePos;
-    getLimitPrice[index] = Binance::getLimitPrice;
-    dbTableName[index] = "binance";
-    createTable(dbTableName[index], params);
-
-    index++;
-  }
-  // We need at least two exchanges to run Blackbird
-  if (index < 2) {
-    std::cout << "ERROR: Blackbird needs at least two Bitcoin exchanges. Please edit the config.json file to add new exchanges\n" << std::endl;
-    exit(EXIT_FAILURE);
-  }
   // Creates the CSV file that will collect the trade results
   std::string currDateTime = printDateTimeFileName();
   std::string csvFileName = "output/blackbird_result_" + currDateTime + ".csv";
@@ -170,6 +123,48 @@ int main(int argc, char** argv) {
 
   logFile << "Connected to database \'" << params.dbFile << "\'\n" << std::endl;
 
+  Feeder feeder(params, logFile);
+
+  // Adds the exchange functions to the arrays for all the defined exchanges
+  int index = 0;
+  if (params.krakenEnable &&
+     (params.krakenApi.empty() == false || params.isDemoMode)) {
+    params.addExchange("Kraken", params.krakenFees, false, true);
+    feeder.getQuote[index] = Kraken::getQuote;
+    getAvail[index] = Kraken::getAvail;
+    sendLongOrder[index] = Kraken::sendLongOrder;
+    sendShortOrder[index] = Kraken::sendShortOrder;
+    isOrderComplete[index] = Kraken::isOrderComplete;
+    getActivePos[index] = Kraken::getActivePos;
+    getLimitPrice[index] = Kraken::getLimitPrice;
+
+    feeder.dbTableName[index] = "kraken";
+    createTable(feeder.dbTableName[index], params, feeder.GetSqliteDBConn());
+
+    index++;
+  }
+  if (params.binanceEnable &&
+      (params.binanceApi.empty() == false || params.isDemoMode))
+  {
+    params.addExchange("Binance", params.binanceFees, false, true);
+    feeder.getQuote[index] = Binance::getQuote;
+    getAvail[index] = Binance::getAvail;
+    sendLongOrder[index] = Binance::sendLongOrder;
+    sendShortOrder[index] = Binance::sendShortOrder;
+    isOrderComplete[index] = Binance::isOrderComplete;
+    getActivePos[index] = Binance::getActivePos;
+    getLimitPrice[index] = Binance::getLimitPrice;
+    feeder.dbTableName[index] = "binance";
+    createTable(feeder.dbTableName[index], params, feeder.GetSqliteDBConn());
+
+    index++;
+  }
+  // We need at least two exchanges to run Blackbird
+  if (index < 2) {
+    std::cout << "ERROR: Blackbird needs at least two Bitcoin exchanges. Please edit the config.json file to add new exchanges\n" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
   if (params.isDemoMode) {
     logFile << "Demo mode: trades won't be generated\n" << std::endl;
   }
@@ -185,7 +180,6 @@ int main(int argc, char** argv) {
   std::cout << "Log file generated: " << logFileName << "\nBlackbird is running... (pid " << getpid() << ")\n" << std::endl;
   int numExch = params.nbExch();
 
-  using ExchangePair = std::unordered_map<std::string, Bitcoin>;
   std::vector<ExchangePair> exchangePairs;
   exchangePairs.reserve(numExch);
   // The btcVec vector contains details about every exchange,
@@ -197,7 +191,8 @@ int main(int argc, char** argv) {
     ExchangePair ccyPairs;
     for (const auto& pair : params.tradedPair)
     {
-      ccyPairs.insert({pair.ToString(), Bitcoin(i, params.exchName[i], pair, params.fees[i], params.canShort[i], params.isImplemented[i])});
+      Bitcoin* cryptoCcy = new Bitcoin(i, params.exchName[i], pair, params.fees[i], params.canShort[i], params.isImplemented[i]);
+      ccyPairs[pair.ToString()] = cryptoCcy;
     }
     exchangePairs.push_back(ccyPairs);
     //btcVec.push_back(Bitcoin(i, params.exchName[i], params.fees[i], params.canShort[i], params.isImplemented[i]));
@@ -290,6 +285,9 @@ int main(int argc, char** argv) {
     logFile << "Running..." << std::endl;
   }
 
+  std::thread feedThread(&Feeder::GetMarketData, &feeder, exchangePairs);
+  //std::thread feedThread(&Feeder::f, &feeder);
+
   int resultId = 0;
   unsigned currIteration = 0;
   bool stillRunning = true;
@@ -298,6 +296,7 @@ int main(int argc, char** argv) {
 
   // Main analysis loop
   while (stillRunning) {
+    /*
     currTime = mktime(&timeinfo);
     time(&rawtime);
     diffTime = difftime(rawtime, currTime);
@@ -353,7 +352,7 @@ int main(int argc, char** argv) {
         if (it != exchangePairs[i].end())
         {
           auto& ccyPairs = it->second;
-          ccyPairs.updateData(quote);
+          ccyPairs->safeUpdateData(quote);
           curl_easy_reset(params.curl);
         }
         else
@@ -365,6 +364,7 @@ int main(int argc, char** argv) {
     if (params.verbose) {
       logFile << "   ----------------------------" << std::endl;
     }
+    */
     // Stores all the spreads in arrays to
     // compute the volatility. The volatility
     // is not used for the moment.
@@ -622,6 +622,8 @@ int main(int argc, char** argv) {
       stillRunning = false;
     }
   }
+
+  feedThread.join();
   // Analysis loop exited, does some cleanup
   curl_easy_cleanup(params.curl);
   csvFile.close();

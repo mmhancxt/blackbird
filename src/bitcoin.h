@@ -4,6 +4,7 @@
 #include "quote_t.h"
 #include "instrument.h"
 #include <string>
+#include <mutex>
 
 // Contains all the information for a given exchange,
 // like fees and wether we can short on that exchange.
@@ -19,14 +20,15 @@ class Bitcoin {
     bool hasShort;
     bool isImplemented;
     double bid, ask;
+    mutable std::mutex m_feedMutex;
 
   public:
     Bitcoin(unsigned id, std::string n, const CurrencyPair& ccyPair, double f, bool h, bool m);
-    void updateData(quote_t quote);
+    void safeUpdateData(quote_t quote);
     unsigned getId() const;
-    double getAsk() const;
-    double getBid() const;
-    double getMidPrice() const;
+    double safeGetAsk() const;
+    double safeGetBid() const;
+    double safeGetMidPrice() const;
     std::string getExchName() const;
     double getFees() const;
     bool getHasShort() const;

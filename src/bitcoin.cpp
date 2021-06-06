@@ -13,18 +13,29 @@ Bitcoin::Bitcoin(unsigned i, std::string n, const CurrencyPair& ccyPair, double 
   ask = 0.0;
 }
 
-void Bitcoin::updateData(quote_t quote) {
+void Bitcoin::safeUpdateData(quote_t quote) {
+  std::lock_guard<std::mutex> lock(m_feedMutex);
   bid = quote.bid();
   ask = quote.ask();
 }
 
 unsigned Bitcoin::getId() const { return id; }
 
-double Bitcoin::getBid()  const { return bid; }
+double Bitcoin::safeGetBid()  const
+{
+  std::lock_guard<std::mutex> lock(m_feedMutex);
+  return bid;
+}
 
-double Bitcoin::getAsk()  const { return ask; }
+double Bitcoin::safeGetAsk()  const
+{
+  std::lock_guard<std::mutex> lock(m_feedMutex);
+  return ask;
+}
 
-double Bitcoin::getMidPrice() const {
+double Bitcoin::safeGetMidPrice() const
+{
+  std::lock_guard<std::mutex> lock(m_feedMutex);
   if (bid > 0.0 && ask > 0.0) {
     return (bid + ask) / 2.0;
   } else {

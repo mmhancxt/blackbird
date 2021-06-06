@@ -9,19 +9,19 @@ struct Parameters;
 namespace Binance
 {
 
-quote_t getQuote(Parameters &params, const std::string& currencyPair);
+quote_t getQuote(const Parameters &params, const std::string& currencyPair);
 
-double getAvail(Parameters &params, std::string currency);
+double getAvail(const Parameters &params, std::string currency);
 
-std::string sendLongOrder(Parameters &params, std::string direction, double quantity, double price);
+std::string sendLongOrder(const Parameters &params, std::string direction, double quantity, double price);
 
-std::string sendShortOrder(Parameters &params, std::string direction, double quantity, double price);
+std::string sendShortOrder(const Parameters &params, std::string direction, double quantity, double price);
 
-bool isOrderComplete(Parameters &params, std::string orderId);
+bool isOrderComplete(const Parameters &params, std::string orderId);
 
-double getActivePos(Parameters &params);
+double getActivePos(const Parameters &params);
 
-double getLimitPrice(Parameters &params, double volume, bool isBid);
+double getLimitPrice(const Parameters &params, double volume, bool isBid);
 
 void testBinance();
 }

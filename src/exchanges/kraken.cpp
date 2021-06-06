@@ -27,14 +27,14 @@ static std::unordered_map<std::string, std::string> s_CcyPairToQueryResult =
   {"DOGEEUR", "XDGEUR"}
 };
 
-static RestApi &queryHandle(Parameters &params)
+static RestApi &queryHandle(const Parameters &params)
 {
   static RestApi query("https://api.kraken.com",
                        params.cacert.c_str(), *params.logFile);
   return query;
 }
 
-quote_t getQuote(Parameters &params, const std::string& currencyPair)
+quote_t getQuote(const Parameters &params, const std::string& currencyPair)
 {
   if (krakenGotTicker)
   {
@@ -67,7 +67,7 @@ quote_t getQuote(Parameters &params, const std::string& currencyPair)
   return std::make_pair(bidValue, askValue);
 }
 
-double getAvail(Parameters &params, std::string currency)
+double getAvail(const Parameters &params, std::string currency)
 {
   unique_json root{authRequest(params, "/0/private/Balance")};
   json_t *result = json_object_get(root.get(), "result");
@@ -93,12 +93,12 @@ double getAvail(Parameters &params, std::string currency)
   return available;
 }
 
-std::string sendLongOrder(Parameters &params, std::string direction, double quantity, double price)
+std::string sendLongOrder(const Parameters &params, std::string direction, double quantity, double price)
 {
   return sendOrder(params, direction, quantity, price);
 }
 
-std::string sendOrder(Parameters &params, std::string direction, double quantity, double price)
+std::string sendOrder(const Parameters &params, std::string direction, double quantity, double price)
 {
   if (direction.compare("buy") != 0 && direction.compare("sell") != 0)
   {
@@ -127,7 +127,7 @@ std::string sendOrder(Parameters &params, std::string direction, double quantity
   return txid;
 }
 
-std::string sendShortOrder(Parameters &params, std::string direction, double quantity, double price)
+std::string sendShortOrder(const Parameters &params, std::string direction, double quantity, double price)
 {
   if (direction.compare("buy") != 0 && direction.compare("sell") != 0)
   {
@@ -159,7 +159,7 @@ std::string sendShortOrder(Parameters &params, std::string direction, double qua
   return txid;
 }
 
-bool isOrderComplete(Parameters &params, std::string orderId)
+bool isOrderComplete(const Parameters &params, std::string orderId)
 {
   unique_json root{authRequest(params, "/0/private/OpenOrders")};
   // no open order: return true
@@ -184,12 +184,12 @@ bool isOrderComplete(Parameters &params, std::string orderId)
   }
 }
 
-double getActivePos(Parameters &params)
+double getActivePos(const Parameters &params)
 {
   return getAvail(params, "btc");
 }
 
-double getLimitPrice(Parameters &params, double volume, bool isBid)
+double getLimitPrice(const Parameters &params, double volume, bool isBid)
 {
   auto &exchange = queryHandle(params);
   unique_json root { exchange.getRequest("/0/public/Depth?pair=XXBTZUSD") };
@@ -215,7 +215,7 @@ double getLimitPrice(Parameters &params, double volume, bool isBid)
   return currPrice;
 }
 
-json_t *authRequest(Parameters &params, std::string request, std::string options)
+json_t *authRequest(const Parameters &params, std::string request, std::string options)
 {
   // create nonce and POST data
   static uint64_t nonce = time(nullptr) * 4;

@@ -112,7 +112,6 @@ struct Parameters {
   std::string receiverAddress;
 
   std::string dbFile;
-  unique_sqlite dbConn;
 
   Parameters(std::string fileName);
 

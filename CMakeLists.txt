@@ -36,7 +36,7 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX _CRT_SECURE_NO_WARNINGS)
 endif()
 set_target_properties(${PROJECT_NAME} PROPERTIES
-                                      CXX_STANDARD 11
+                                      CXX_STANDARD 17
                                       CXX_STANDARD_REQUIRED YES
                                       CXX_EXTENSIONS NO)
 target_include_directories (${PROJECT_NAME} PRIVATE

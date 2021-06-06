@@ -17,18 +17,18 @@
 namespace Binance
 {
 
-static json_t *authRequest(Parameters &, std::string, std::string, std::string);
+static json_t *authRequest(const Parameters &, std::string, std::string, std::string);
 
-static std::string getSignature(Parameters &params, std::string payload);
+static std::string getSignature(const Parameters &params, std::string payload);
 
-static RestApi &queryHandle(Parameters &params)
+static RestApi &queryHandle(const Parameters &params)
 {
     static RestApi query("https://api.binance.com",
                          params.cacert.c_str(), *params.logFile);
     return query;
 }
 
-quote_t getQuote(Parameters &params, const std::string& currencyPair)
+quote_t getQuote(const Parameters &params, const std::string& currencyPair)
 {
     auto &exchange = queryHandle(params);
     std::string x = "/api/v3/ticker/bookTicker?symbol=" + currencyPair;
@@ -42,7 +42,7 @@ quote_t getQuote(Parameters &params, const std::string& currencyPair)
     return std::make_pair(bidValue, askValue);
 }
 
-double getAvail(Parameters &params, std::string currency)
+double getAvail(const Parameters &params, std::string currency)
 {
     std::string cur_str;
     //cur_str += "symbol=BTCUSDT";
@@ -80,7 +80,7 @@ double getAvail(Parameters &params, std::string currency)
     return available;
 }
 //TODO: Currency String here
-std::string sendLongOrder(Parameters &params, std::string direction, double quantity, double price)
+std::string sendLongOrder(const Parameters &params, std::string direction, double quantity, double price)
 {
     if (direction.compare("buy") != 0 && direction.compare("sell") != 0)
     {
@@ -106,12 +106,12 @@ std::string sendLongOrder(Parameters &params, std::string direction, double quan
 }
 
 //TODO: probably not necessary
-std::string sendShortOrder(Parameters &params, std::string direction, double quantity, double price)
+std::string sendShortOrder(const Parameters &params, std::string direction, double quantity, double price)
 {
     return "0";
 }
 
-bool isOrderComplete(Parameters &params, std::string orderId)
+bool isOrderComplete(const Parameters &params, std::string orderId)
 {
     unique_json root{authRequest(params, "GET", "/api/v3/openOrders", "")};
     size_t arraySize = json_array_size(root.get());
@@ -132,12 +132,12 @@ bool isOrderComplete(Parameters &params, std::string orderId)
     return complete;
 }
 //TODO: Currency
-double getActivePos(Parameters &params)
+double getActivePos(const Parameters &params)
 {
     return getAvail(params, "BTC");
 }
 
-double getLimitPrice(Parameters &params, double volume, bool isBid)
+double getLimitPrice(const Parameters &params, double volume, bool isBid)
 {
     auto &exchange = queryHandle(params);
     //TODO build a real URI string here
@@ -162,7 +162,7 @@ double getLimitPrice(Parameters &params, double volume, bool isBid)
     return p;
 }
 
-json_t *authRequest(Parameters &params, std::string method, std::string request, std::string options)
+json_t *authRequest(const Parameters &params, std::string method, std::string request, std::string options)
 {
     //create timestamp Binance is annoying and requires their servertime
     auto &exchange = queryHandle(params);
@@ -202,7 +202,7 @@ json_t *authRequest(Parameters &params, std::string method, std::string request,
     }
 }
 
-static std::string getSignature(Parameters &params, std::string payload)
+static std::string getSignature(const Parameters &params, std::string payload)
 {
     uint8_t *hmac_digest = HMAC(EVP_sha256(),
                                 params.binanceSecret.c_str(), params.binanceSecret.size(),
