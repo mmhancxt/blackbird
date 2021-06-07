@@ -74,7 +74,7 @@ bool checkEntry(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& pa
     }
     // If one of the exchanges (or both) hasn't been implemented,
     // we mention in the log file that this spread is for info only.
-    if ((!btcLong->getIsImplemented() || !btcShort->getIsImplemented()) && !params.isDemoMode)
+    if (!params.isDemoMode)
       *params.logFile << "   info only";
 
     *params.logFile << std::endl;
@@ -82,9 +82,7 @@ bool checkEntry(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& pa
   // We need both exchanges to be implemented,
   // otherwise we return False regardless of
   // the opportunity found.
-  if (!btcLong->getIsImplemented() ||
-      !btcShort->getIsImplemented() ||
-      res.spreadIn == 0.0)
+  if (res.spreadIn == 0.0)
     return false;
 
   // the trailing spread is reset for this pair,

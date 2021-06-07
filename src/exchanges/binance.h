@@ -1,29 +1,29 @@
-#ifndef BINANCE_H
-#define BINANCE_H
-
+#pragma once
+#include "Market.h"
 #include "quote_t.h"
 #include <string>
 
-struct Parameters;
-
-namespace Binance
+class Binance final : public Market
 {
+public:
+    Binance(const std::string& name, int id, double fees, bool canShort, const Parameters& params)
+        : Market(name, id, fees, canShort, params)
+    {
+    }
 
-quote_t getQuote(const Parameters &params, const std::string& currencyPair);
+    quote_t GetQuote(const std::string& currencyPair) override;
 
-double getAvail(const Parameters &params, std::string currency);
+    double GetAvail(std::string currency) override;
 
-std::string sendLongOrder(const Parameters &params, std::string direction, double quantity, double price);
+    std::string SendLongOrder(std::string direction, double quantity, double price) override;
 
-std::string sendShortOrder(const Parameters &params, std::string direction, double quantity, double price);
+    std::string SendShortOrder(std::string direction, double quantity, double price) override;
 
-bool isOrderComplete(const Parameters &params, std::string orderId);
+    bool IsOrderComplete(std::string orderId) override;
 
-double getActivePos(const Parameters &params);
+    double GetActivePos() override;
 
-double getLimitPrice(const Parameters &params, double volume, bool isBid);
+    double GetLimitPrice(double volume, bool isBid) override;
 
-void testBinance();
-}
-
-#endif
+    void testBinance();
+};

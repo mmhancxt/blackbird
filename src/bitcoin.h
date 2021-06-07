@@ -2,7 +2,7 @@
 #define BITCOIN_H
 
 #include "quote_t.h"
-#include "instrument.h"
+#include "Instrument.h"
 #include <string>
 #include <mutex>
 
@@ -15,15 +15,14 @@ class Bitcoin {
   private:
     unsigned id;
     std::string exchName;
-    CurrencyPair currencyPair;
+    Instrument currencyPair;
     double fees;
     bool hasShort;
-    bool isImplemented;
     double bid, ask;
     mutable std::mutex m_feedMutex;
 
   public:
-    Bitcoin(unsigned id, std::string n, const CurrencyPair& ccyPair, double f, bool h, bool m);
+    Bitcoin(unsigned id, std::string n, const Instrument& ccyPair, double f, bool h);
     void safeUpdateData(quote_t quote);
     unsigned getId() const;
     double safeGetAsk() const;
@@ -32,7 +31,6 @@ class Bitcoin {
     std::string getExchName() const;
     double getFees() const;
     bool getHasShort() const;
-    bool getIsImplemented() const;
 };
 
 #endif

@@ -100,7 +100,7 @@ Parameters::Parameters(std::string fileName) {
 
   for (const auto& pair : pairs)
   {
-    tradedPair.emplace_back(CurrencyPair{pair.substr(0, 3), pair.substr(4)});
+    tradedPair.emplace_back(Instrument{pair.substr(0, 3), pair.substr(4)});
   }
 
   //leg1 = getParameter("Leg1", configFile);
@@ -136,6 +136,7 @@ Parameters::Parameters(std::string fileName) {
   krakenSecret = getParameter("KrakenSecretKey", configFile);
   krakenFees = getDouble(getParameter("KrakenFees", configFile));
   krakenEnable = getBool(getParameter("KrakenEnable", configFile));
+  krakenRequestMultiSymbols = getBool(getParameter("KrakenRequestMultiSymbols", configFile));
   itbitApi = getParameter("ItBitApiKey", configFile);
   itbitSecret = getParameter("ItBitSecretKey", configFile);
   itbitFees = getDouble(getParameter("ItBitFees", configFile));
@@ -186,16 +187,16 @@ Parameters::Parameters(std::string fileName) {
   dbFile = getParameter("DBFile", configFile);
 }
 
-void Parameters::addExchange(std::string n, double f, bool h, bool m) {
-  exchName.push_back(n);
-  fees.push_back(f);
-  canShort.push_back(h);
-  isImplemented.push_back(m);
-}
-
-int Parameters::nbExch() const {
-  return exchName.size();
-}
+//void Parameters::addExchange(std::string n, double f, bool h, bool m) {
+//  exchName.push_back(n);
+//  fees.push_back(f);
+//  canShort.push_back(h);
+//  isImplemented.push_back(m);
+//}
+//
+//int Parameters::nbExch() const {
+//  return exchName.size();
+//}
 
 std::string getParameter(std::string parameter, std::ifstream& configFile) {
   assert (configFile);

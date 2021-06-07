@@ -1,34 +1,39 @@
-#ifndef KRAKEN_H
-#define KRAKEN_H
-
+#pragma once
 #include "quote_t.h"
+#include "Market.h"
 #include <string>
 
 struct json_t;
-struct Parameters;
 
-namespace Kraken {
+class Kraken final : public Market
+{
+public:
+    Kraken(const std::string& name, int id, double fees, bool canShort, const Parameters& params)
+        : Market(name, id, fees, canShort, params)
+    {
+    }
 
-quote_t getQuote(const Parameters& params, const std::string& currencyPair);
+    quote_t GetQuote(const std::string& currencyPair) override;
 
-double getAvail(const Parameters& params, std::string currency);
+    bool GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,
+        std::unordered_map<std::string, quote_t>& quotes) override;
 
-std::string sendLongOrder(const Parameters& params, std::string direction, double quantity, double price);
+    double GetAvail(std::string currency) override;
 
-std::string sendShortOrder(const Parameters& params, std::string direction, double quantity, double price);
+    std::string SendLongOrder(std::string direction, double quantity, double price) override;
 
-std::string sendOrder(const Parameters& params, std::string direction, double quantity, double price);
+    std::string SendShortOrder(std::string direction, double quantity, double price) override;
 
-bool isOrderComplete(const Parameters& params, std::string orderId);
+    std::string SendOrder(std::string direction, double quantity, double price);
 
-double getActivePos(const Parameters& params);
+    bool IsOrderComplete(std::string orderId) override;
 
-double getLimitPrice(const Parameters& params, double volume, bool isBid);
+    double GetActivePos() override;
 
-json_t* authRequest(const Parameters& params, std::string request, std::string options = "");
+    double GetLimitPrice(double volume, bool isBid) override;
 
-void testKraken();
+    json_t* authRequest(std::string request, std::string options = "");
 
-}
+    void testKraken();
 
-#endif
+};

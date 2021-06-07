@@ -13,11 +13,11 @@
 // in the configuration file.
 struct Parameters {
 
-  std::vector<std::string> exchName;
-  std::vector<double> fees;
-  std::vector<bool> canShort;
-  std::vector<bool> isImplemented;
-  std::vector<std::string> tickerUrl;
+  //std::vector<std::string> exchName;
+  //std::vector<double> fees;
+  //std::vector<bool> canShort;
+  //std::vector<bool> isImplemented;
+  //std::vector<std::string> tickerUrl;
 
   CURL* curl;
   double spreadEntry;
@@ -28,7 +28,7 @@ struct Parameters {
   unsigned trailingCount;
   double orderBookFactor;
   bool isDemoMode;
-  std::vector<CurrencyPair> tradedPair;
+  std::vector<Instrument> tradedPair;
   //std::string leg1;
   //std::string leg2;
   bool verbose;
@@ -64,6 +64,8 @@ struct Parameters {
   std::string krakenSecret;
   double krakenFees;
   bool krakenEnable;
+  bool krakenRequestMultiSymbols;
+
   std::string itbitApi;
   std::string itbitSecret;
   double itbitFees;
@@ -115,9 +117,9 @@ struct Parameters {
 
   Parameters(std::string fileName);
 
-  void addExchange(std::string n, double f, bool h, bool m);
+  //void addExchange(std::string n, double f, bool h, bool m);
 
-  int nbExch() const;
+  //int nbExch() const;
 };
 
 // Copies the parameters from the configuration file

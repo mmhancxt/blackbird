@@ -7,16 +7,18 @@
 class Feeder
 {
 public:
-    Feeder(const Parameters& params, std::ofstream& log);
+    Feeder(const Parameters& params, const std::vector<std::unique_ptr<Market>>& markets,
+        std::ofstream& log);
 
-    void GetMarketData(const std::vector<ExchangePair>& exchangePairs);
+    void GetMarketData();
 
-    unique_sqlite& GetSqliteDBConn() { return m_dbConn; }
+private:
+    void ProcessQuote(const std::string& ccyPair, const quote_t& quote,
+        const std::string& marketName, const Dico& dico, time_t currentTime);
 
-    getQuoteType getQuote[2];
-    std::string dbTableName[2];
 private:
     const Parameters& m_params;
+    const std::vector<std::unique_ptr<Market>>& m_markets;
     std::ofstream& m_logFile;
     unique_sqlite m_dbConn;
 };
