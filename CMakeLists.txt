@@ -23,8 +23,8 @@ find_package(SQLite3)
 
 file(GLOB SOURCES
     src/*.cpp
-    src/exchanges/binance.cpp
-    src/exchanges/kraken.cpp
+    src/exchanges/Binance.cpp
+    src/exchanges/Kraken.cpp
     src/utils/*.cpp)
 add_executable(${PROJECT_NAME} ${SOURCES})
 
