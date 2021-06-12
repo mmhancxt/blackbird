@@ -1,4 +1,4 @@
-#include "kraken.h"
+#include "Kraken.h"
 #include "parameters.h"
 #include "utils/restapi.h"
 #include "utils/base64.h"

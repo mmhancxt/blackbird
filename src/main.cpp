@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
   std::cout << "Blackbird Bitcoin Arbitrage" << std::endl;
   std::cout << "DISCLAIMER: USE THE SOFTWARE AT YOUR OWN RISK\n" << std::endl;
   // Replaces the C++ global locale with the user-preferred locale
-  std::locale mylocale("");
+  // std::locale mylocale("");
   // Loads all the parameters
   Parameters params("blackbird.conf");
   // Does some verifications about the parameters
@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
   // Creates the log file where all events will be saved
   std::string logFileName = "output/blackbird_log_" + currDateTime + ".log";
   std::ofstream logFile(logFileName, std::ofstream::trunc);
-  logFile.imbue(mylocale);
+  logFile.imbue(std::locale());
   logFile.precision(2);
   logFile << std::fixed;
   params.logFile = &logFile;

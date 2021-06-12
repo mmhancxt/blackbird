@@ -18,7 +18,7 @@ Feeder::Feeder(const Parameters &params, const std::vector<std::unique_ptr<Marke
     // would be useful to collect historical bid/ask data.
     if (createDbConnection(m_params, m_dbConn) != 0)
     {
-        std::cerr << "ERROR: cannot connect to the database \'" << m_params.dbFile
+        m_logFile << "ERROR: cannot connect to the database \'" << m_params.dbFile
                   << "\'\n"
                   << std::endl;
         //exit(EXIT_FAILURE);

@@ -2,7 +2,7 @@
 #define BITCOIN_H
 
 #include "quote_t.h"
-#include "Instrument.h"
+#include "instrument.h"
 #include <string>
 #include <mutex>
 
