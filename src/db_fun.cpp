@@ -24,34 +24,36 @@ sqlite_proxy< std::unique_ptr<T, deleter> >
 acquire(std::unique_ptr<T, deleter> &owner) { return owner;   }
 }
 
-int createDbConnection(Parameters& params) {
-  int res = sqlite3_open(params.dbFile.c_str(), acquire(params.dbConn));
-  
+int createDbConnection(const Parameters& params, unique_sqlite& dbConn) {
+  int res = sqlite3_open(params.dbFile.c_str(), acquire(dbConn));
+
   if (res != SQLITE_OK)
-    std::cerr << sqlite3_errmsg(params.dbConn.get()) << std::endl;
+    std::cerr << sqlite3_errmsg(dbConn.get()) << std::endl;
 
   return res;
 }
 
-int createTable(std::string exchangeName, Parameters& params) {
-  
+int createTable(std::string exchangeName, const Parameters& params, unique_sqlite& dbConn) {
+
   std::string query = "CREATE TABLE IF NOT EXISTS `" + exchangeName +
-                      "` (Datetime DATETIME NOT NULL, bid DECIMAL(8, 2), ask DECIMAL(8, 2));";
+                      "` (CurrencyPair TEXT NOT NULL, Datetime DATETIME NOT NULL, bid DECIMAL(8, 2), ask DECIMAL(8, 2));";
   unique_sqlerr errmsg;
-  int res = sqlite3_exec(params.dbConn.get(), query.c_str(), nullptr, nullptr, acquire(errmsg));
+  int res = sqlite3_exec(dbConn.get(), query.c_str(), nullptr, nullptr, acquire(errmsg));
   if (res != SQLITE_OK)
     std::cerr << errmsg.get() << std::endl;
 
   return res;
 }
 
-int addBidAskToDb(std::string exchangeName, std::string datetime, double bid, double ask, Parameters& params) {
+int addBidAskToDb(const std::string& exchangeName, const std::string& currencyPair,
+  std::string datetime, double bid, double ask, const Parameters& params, unique_sqlite& dbConn)
+{
   std::string query = "INSERT INTO `" + exchangeName +
-                      "` VALUES ('"   + datetime +
+                      "` VALUES ('"   + currencyPair + "','" + datetime +
                       "'," + std::to_string(bid) +
                       "," + std::to_string(ask) + ");";
   unique_sqlerr errmsg;
-  int res = sqlite3_exec(params.dbConn.get(), query.c_str(), nullptr, nullptr, acquire(errmsg));
+  int res = sqlite3_exec(dbConn.get(), query.c_str(), nullptr, nullptr, acquire(errmsg));
   if (res != SQLITE_OK)
     std::cerr << errmsg.get() << std::endl;
 

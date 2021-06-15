@@ -15,7 +15,7 @@ template <typename T>
 static typename std::iterator_traits<T>::value_type compute_sd(T first, const T &last) {
   using namespace std;
   typedef typename iterator_traits<T>::value_type value_type;
-  
+
   auto n  = distance(first, last);
   auto mu = accumulate(first, last, value_type()) / n;
   auto squareSum = inner_product(first, last, first, value_type());
@@ -31,12 +31,12 @@ std::string percToStr(double perc) {
 }
 
 bool checkEntry(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& params) {
-  
+
   if (!btcShort->getHasShort()) return false;
 
   // Gets the prices and computes the spread
-  double priceLong = btcLong->getAsk();
-  double priceShort = btcShort->getBid();
+  double priceLong = btcLong->safeGetAsk();
+  double priceShort = btcShort->safeGetBid();
   // If the prices are null we return a null spread
   // to avoid false opportunities
   if (priceLong > 0.0 && priceShort > 0.0) {
@@ -74,7 +74,7 @@ bool checkEntry(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& pa
     }
     // If one of the exchanges (or both) hasn't been implemented,
     // we mention in the log file that this spread is for info only.
-    if ((!btcLong->getIsImplemented() || !btcShort->getIsImplemented()) && !params.isDemoMode)
+    if (!params.isDemoMode)
       *params.logFile << "   info only";
 
     *params.logFile << std::endl;
@@ -82,9 +82,7 @@ bool checkEntry(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& pa
   // We need both exchanges to be implemented,
   // otherwise we return False regardless of
   // the opportunity found.
-  if (!btcLong->getIsImplemented() ||
-      !btcShort->getIsImplemented() ||
-      res.spreadIn == 0.0)
+  if (res.spreadIn == 0.0)
     return false;
 
   // the trailing spread is reset for this pair,
@@ -135,8 +133,8 @@ bool checkEntry(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& pa
 }
 
 bool checkExit(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& params, time_t period) {
-  double priceLong  = btcLong->getBid();
-  double priceShort = btcShort->getAsk();
+  double priceLong  = btcLong->safeGetBid();
+  double priceShort = btcShort->safeGetAsk();
   if (priceLong > 0.0 && priceShort > 0.0) {
     res.spreadOut = (priceShort - priceLong) / priceLong;
   } else {

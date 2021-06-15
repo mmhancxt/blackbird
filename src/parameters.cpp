@@ -19,7 +19,7 @@ static std::string findConfigFile(std::string fileName) {
   // Unix user settings directory
   {
     char *home = getenv("HOME");
-    
+
     if (home) {
       std::string prefix = std::string(home) + "/.config";
       std::string fullpath = prefix + "/" + fileName;
@@ -64,6 +64,20 @@ static std::string findConfigFile(std::string fileName) {
   return fileName;
 }
 
+void Split(const std::string& input, std::vector<std::string>& output, char delimiter)
+{
+  std::string s(input);
+  size_t pos = 0;
+  std::string token;
+  while ((pos = s.find(delimiter)) != std::string::npos)
+  {
+    token = s.substr(0, pos);
+    output.push_back(token);
+    s.erase(0, pos + 1);
+  }
+  output.push_back(s);
+}
+
 Parameters::Parameters(std::string fileName) {
   std::ifstream configFile(findConfigFile(fileName));
   if (!configFile.is_open()) {
@@ -79,8 +93,21 @@ Parameters::Parameters(std::string fileName) {
   trailingCount = getUnsigned(getParameter("TrailingSpreadCount", configFile));
   orderBookFactor = getDouble(getParameter("OrderBookFactor", configFile));
   isDemoMode = getBool(getParameter("DemoMode", configFile));
-  leg1 = getParameter("Leg1", configFile);
-  leg2 = getParameter("Leg2", configFile);
+
+  const std::string ccyList = getParameter("SpotCurrencyPairList", configFile);
+  if (!ccyList.empty())
+  {
+    std::vector<std::string> pairs;
+    Split(ccyList, pairs, ';');
+
+    for (const auto& pair : pairs)
+    {
+      tradedPair.emplace_back(Instrument{pair.substr(0, 3), pair.substr(4)});
+    }
+  }
+
+  //leg1 = getParameter("Leg1", configFile);
+  //leg2 = getParameter("Leg2", configFile);
   verbose = getBool(getParameter("Verbose", configFile));
   interval = getUnsigned(getParameter("Interval", configFile));
   debugMaxIteration = getUnsigned(getParameter("DebugMaxIteration", configFile));
@@ -112,6 +139,7 @@ Parameters::Parameters(std::string fileName) {
   krakenSecret = getParameter("KrakenSecretKey", configFile);
   krakenFees = getDouble(getParameter("KrakenFees", configFile));
   krakenEnable = getBool(getParameter("KrakenEnable", configFile));
+  krakenRequestMultiSymbols = getBool(getParameter("KrakenRequestMultiSymbols", configFile));
   itbitApi = getParameter("ItBitApiKey", configFile);
   itbitSecret = getParameter("ItBitSecretKey", configFile);
   itbitFees = getDouble(getParameter("ItBitFees", configFile));
@@ -162,16 +190,16 @@ Parameters::Parameters(std::string fileName) {
   dbFile = getParameter("DBFile", configFile);
 }
 
-void Parameters::addExchange(std::string n, double f, bool h, bool m) {
-  exchName.push_back(n);
-  fees.push_back(f);
-  canShort.push_back(h);
-  isImplemented.push_back(m);
-}
-
-int Parameters::nbExch() const {
-  return exchName.size();
-}
+//void Parameters::addExchange(std::string n, double f, bool h, bool m) {
+//  exchName.push_back(n);
+//  fees.push_back(f);
+//  canShort.push_back(h);
+//  isImplemented.push_back(m);
+//}
+//
+//int Parameters::nbExch() const {
+//  return exchName.size();
+//}
 
 std::string getParameter(std::string parameter, std::ifstream& configFile) {
   assert (configFile);
@@ -188,6 +216,7 @@ std::string getParameter(std::string parameter, std::ifstream& configFile) {
       }
     }
   }
+
   std::cout << "ERROR: parameter '" << parameter << "' not found. Your configuration file might be too old.\n" << std::endl;
   exit(EXIT_FAILURE);
 }
