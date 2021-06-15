@@ -11,6 +11,8 @@ public:
     {
     }
 
+    bool RetrieveInstruments() override;
+
     quote_t GetQuote(const std::string& currencyPair) override;
 
     double GetAvail(std::string currency) override;

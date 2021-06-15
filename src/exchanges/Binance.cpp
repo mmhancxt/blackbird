@@ -25,6 +25,25 @@ static RestApi &queryHandle(const Parameters &params)
     return query;
 }
 
+bool Binance::RetrieveInstruments()
+{
+    auto &exchange = queryHandle(m_params);
+    std::string x = "/api/v3/exchangeInfo";
+    unique_json root{exchange.getRequest(x)};
+
+    json_t *resultArray = json_object_get(root.get(), "symbols");
+
+    size_t index;
+    json_t *symbolInfo = nullptr;
+    json_array_foreach(resultArray, index, symbolInfo)
+    {
+        std::string symbol = json_string_value(json_object_get(symbolInfo, "symbol"));
+        //m_log << "DEBUG : symbol is " << symbol << std::endl;
+        m_rawSymbols.insert(symbol);
+    }
+    return true;
+}
+
 quote_t Binance::GetQuote(const std::string& currencyPair)
 {
     auto &exchange = queryHandle(m_params);

@@ -13,6 +13,8 @@ public:
     {
     }
 
+    bool RetrieveInstruments() override;
+
     quote_t GetQuote(const std::string& currencyPair) override;
 
     bool GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,
@@ -36,4 +38,6 @@ public:
 
     void testKraken();
 
+private:
+    std::unordered_map<std::string, std::string> m_altNameMap;
 };

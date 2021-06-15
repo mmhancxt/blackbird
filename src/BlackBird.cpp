@@ -33,6 +33,9 @@ bool BlackBird::Initialize()
 
     InitializeInstruments();
 
+    std::cout << "Log file generated: " << m_logFileName << "\nBlackbird is running... (pid "
+        << getpid() << ")\n" << std::endl;
+
     // Inits cURL connections
     m_params.curl = curl_easy_init();
     // Shows the spreads
@@ -153,28 +156,45 @@ void BlackBird::InitializeMarkets()
 
 void BlackBird::InitializeInstruments()
 {
-    // Shows which pair we are trading (BTC/USD only for the moment)
-    m_log << "Pair traded: ";
-    for (const auto &ccyPair : m_params.tradedPair)
+    for (auto& market : m_markets)
     {
-        m_log << ccyPair;
+        market->RetrieveInstruments();
+        FilterCommonSymbols(market->GetRawSymbols());
     }
-    m_log << std::endl;
-
-    std::cout << "Log file generated: " << m_logFileName << "\nBlackbird is running... (pid "
-        << getpid() << ")\n" << std::endl;
 
     for (auto& market : m_markets)
     {
-        Dico& dico = market->GetDico();
-        for (const auto &pair : m_params.tradedPair)
-        {
-            Bitcoin *cryptoCcy = new Bitcoin(market->GetID(),market->GetName(),
-              pair, market->GetFees(), market->CanShort());
-            dico[pair.ToString()] = cryptoCcy;
-        }
+        market->InitializeInstruments(m_commonSymbols);
     }
 }
+
+void BlackBird::FilterCommonSymbols(const std::set<std::string>& symbols)
+{
+  if (m_commonSymbols.empty())
+  {
+    for (const auto& symbol : symbols)
+    {
+      m_commonSymbols.insert(symbol);
+    }
+  }
+  else
+  {
+    auto it = m_commonSymbols.begin();
+    while (it != m_commonSymbols.end())
+    {
+      const auto& symbol = *it;
+      if (symbols.find(symbol) == symbols.end())
+      {
+        it = m_commonSymbols.erase(it);
+      }
+      else
+      {
+        ++it;
+      }
+    }
+  }
+}
+
 
 void BlackBird::Run()
 {

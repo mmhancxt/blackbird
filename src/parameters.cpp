@@ -95,12 +95,15 @@ Parameters::Parameters(std::string fileName) {
   isDemoMode = getBool(getParameter("DemoMode", configFile));
 
   const std::string ccyList = getParameter("SpotCurrencyPairList", configFile);
-  std::vector<std::string> pairs;
-  Split(ccyList, pairs, ';');
-
-  for (const auto& pair : pairs)
+  if (!ccyList.empty())
   {
-    tradedPair.emplace_back(Instrument{pair.substr(0, 3), pair.substr(4)});
+    std::vector<std::string> pairs;
+    Split(ccyList, pairs, ';');
+
+    for (const auto& pair : pairs)
+    {
+      tradedPair.emplace_back(Instrument{pair.substr(0, 3), pair.substr(4)});
+    }
   }
 
   //leg1 = getParameter("Leg1", configFile);
@@ -213,6 +216,7 @@ std::string getParameter(std::string parameter, std::ifstream& configFile) {
       }
     }
   }
+
   std::cout << "ERROR: parameter '" << parameter << "' not found. Your configuration file might be too old.\n" << std::endl;
   exit(EXIT_FAILURE);
 }

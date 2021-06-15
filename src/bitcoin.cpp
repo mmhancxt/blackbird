@@ -1,11 +1,12 @@
 #include "bitcoin.h"
 #include <cmath>
 
-Bitcoin::Bitcoin(unsigned i, std::string n, const Instrument& ccyPair, double f, bool h)
-  : currencyPair(ccyPair)
+Bitcoin::Bitcoin(unsigned i, std::string n, const std::string& s, double f, bool h)
+  //: currencyPair(ccyPair)
 {
   id = i;
   exchName = n;
+  symbol = s;
   fees = f;
   hasShort = h;
   bid = 0.0;

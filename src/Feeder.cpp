@@ -87,9 +87,19 @@ void Feeder::GetMarketData()
             if (market->SupportReuesetMultiSymbols())
             {
                 std::vector<std::string> ccySymbols;
-                for (const auto& currencyPair : m_params.tradedPair)
+                if (m_params.tradedPair.empty())
                 {
-                    ccySymbols.push_back(currencyPair.GetName());
+                    for (const auto& p : dico)
+                    {
+                        ccySymbols.push_back(p.first);
+                    }
+                }
+                else
+                {
+                    for (const auto& ccyPair : m_params.tradedPair)
+                    {
+                        ccySymbols.push_back(ccyPair.GetName());
+                    }
                 }
                 std::unordered_map<std::string, quote_t> quotes;
 

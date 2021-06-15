@@ -15,14 +15,16 @@ class Bitcoin {
   private:
     unsigned id;
     std::string exchName;
-    Instrument currencyPair;
+    //Instrument currencyPair;
+    std::string symbol;
     double fees;
     bool hasShort;
     double bid, ask;
     mutable std::mutex m_feedMutex;
 
   public:
-    Bitcoin(unsigned id, std::string n, const Instrument& ccyPair, double f, bool h);
+    //Bitcoin(unsigned id, std::string n, const Instrument& ccyPair, double f, bool h);
+    Bitcoin(unsigned id, std::string n, const std::string& symbol, double f, bool h);
     void safeUpdateData(quote_t quote);
     unsigned getId() const;
     double safeGetAsk() const;

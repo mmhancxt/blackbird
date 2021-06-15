@@ -16,13 +16,10 @@
 static unique_json krakenTicker = nullptr;
 static bool krakenGotTicker = false;
 
-static std::unordered_map<std::string, std::string> s_CcyPairToQueryResult =
-{
-  {"BTCEUR", "XXBTZEUR"},
-  {"ETHEUR", "XETHZEUR"},
-  {"ADAEUR", "ADAEUR"},
-  {"DOGEEUR", "XDGEUR"}
-};
+static std::unordered_map<std::string, std::string> s_specialNameMap =
+    {
+        {"XBT", "BTC"},
+        {"XDG", "DOGE"}};
 
 static RestApi &queryHandle(const Parameters &params)
 {
@@ -31,7 +28,57 @@ static RestApi &queryHandle(const Parameters &params)
   return query;
 }
 
-quote_t Kraken::GetQuote(const std::string& currencyPair)
+bool Kraken::RetrieveInstruments()
+{
+  auto &exchange = queryHandle(m_params);
+  const std::string query = "/0/public/AssetPairs";
+  unique_json tradeableAssetPairs(exchange.getRequest(query));
+  json_t *root = tradeableAssetPairs.get();
+  // const std::string errorMsg(json_string_value(json_object_get(root, "error")));
+  // if (!errorMsg.empty())
+  // {
+  //     m_log << __FILE__ << " : " << __func__ << " : Error in Kraken [" << errorMsg << "]" << std::endl;
+  //     return false;
+  // }
+
+  json_t *resultArray = json_object_get(root, "result");
+  const char *key;
+  json_t *pair = nullptr;
+  json_object_foreach(resultArray, key, pair)
+  {
+    //char* s = json_dumps(pair, JSON_ENCODE_ANY);
+    // m_log << key << std::endl;
+    m_rawSymbols.insert(key);
+
+    std::string altName = json_string_value(json_object_get(pair, "altname"));
+    //m_log << altName << std::endl;
+
+    for (const auto &p : s_specialNameMap)
+    {
+      const auto& k = p.first;
+      const auto& v = p.second;
+
+      size_t index = altName.find(k);
+      if (index != std::string::npos)
+      {
+        auto len = k.size();
+        if (index == 0)
+        {
+          altName = v + altName.substr(len);
+        }
+        else
+        {
+          altName = altName.substr(0, len) + v;
+        }
+      }
+    }
+    //m_log << altName << std::endl;
+    m_altNameMap[altName] = key;
+  }
+  return true;
+}
+
+quote_t Kraken::GetQuote(const std::string &currencyPair)
 {
   if (krakenGotTicker)
   {
@@ -46,25 +93,29 @@ quote_t Kraken::GetQuote(const std::string& currencyPair)
   }
   json_t *root = krakenTicker.get();
 
-  const auto it = s_CcyPairToQueryResult.find(currencyPair);
+  const auto it = m_altNameMap.find(currencyPair);
   std::string queryResultPair;
-  if (it != s_CcyPairToQueryResult.end())
+  if (it != m_altNameMap.end())
   {
     queryResultPair = it->second;
   }
   const char *quote = json_string_value(json_array_get(json_object_get(json_object_get(json_object_get(root, "result"),
-    queryResultPair.c_str()), "b"), 0));
+                                                                                       queryResultPair.c_str()),
+                                                                       "b"),
+                                                       0));
   auto bidValue = quote ? std::stod(quote) : 0.0;
 
   quote = json_string_value(json_array_get(json_object_get(json_object_get(json_object_get(root, "result"),
-    queryResultPair.c_str()), "a"), 0));
+                                                                           queryResultPair.c_str()),
+                                                           "a"),
+                                           0));
   auto askValue = quote ? std::stod(quote) : 0.0;
 
   return std::make_pair(bidValue, askValue);
 }
 
-bool Kraken::GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,
-    std::unordered_map<std::string, quote_t>& quotes)
+bool Kraken::GetQuotesForMultiSymbols(const std::vector<std::string> &ccyPairs,
+                                      std::unordered_map<std::string, quote_t> &quotes)
 {
   if (krakenGotTicker)
   {
@@ -77,8 +128,8 @@ bool Kraken::GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,
     ss << "/0/public/Ticker?pair=";
     for (auto i = 0; i < ccyPairs.size(); ++i)
     {
-      ss << ccyPairs[i];
-      if (i != ccyPairs.size() - 1 )
+      ss << m_altNameMap[ccyPairs[i]];
+      if (i != ccyPairs.size() - 1)
       {
         ss << ",";
       }
@@ -90,18 +141,22 @@ bool Kraken::GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,
 
   for (const auto& currencyPair : ccyPairs)
   {
-    const auto it = s_CcyPairToQueryResult.find(currencyPair);
+    const auto it = m_altNameMap.find(currencyPair);
     std::string queryResultPair;
-    if (it != s_CcyPairToQueryResult.end())
+    if (it != m_altNameMap.end())
     {
       queryResultPair = it->second;
     }
     const char *quote = json_string_value(json_array_get(json_object_get(json_object_get(json_object_get(root, "result"),
-      queryResultPair.c_str()), "b"), 0));
+                                                                                         queryResultPair.c_str()),
+                                                                         "b"),
+                                                         0));
     auto bidValue = quote ? std::stod(quote) : 0.0;
 
     quote = json_string_value(json_array_get(json_object_get(json_object_get(json_object_get(root, "result"),
-      queryResultPair.c_str()), "a"), 0));
+                                                                             queryResultPair.c_str()),
+                                                             "a"),
+                                             0));
     auto askValue = quote ? std::stod(quote) : 0.0;
 
     quotes.emplace(currencyPair, quote_t(bidValue, askValue));
@@ -149,8 +204,8 @@ std::string Kraken::SendOrder(std::string direction, double quantity, double pri
     return "0";
   }
   *m_params.logFile << "<Kraken> Trying to send a \"" << direction << "\" limit order: "
-                  << std::setprecision(6) << quantity << " @ $"
-                  << std::setprecision(2) << price << "...\n";
+                    << std::setprecision(6) << quantity << " @ $"
+                    << std::setprecision(2) << price << "...\n";
   std::string pair = "XXBTZUSD";
   std::string type = direction;
   std::string ordertype = "limit";
@@ -166,7 +221,7 @@ std::string Kraken::SendOrder(std::string direction, double quantity, double pri
   }
   std::string txid = json_string_value(json_array_get(json_object_get(res, "txid"), 0));
   *m_params.logFile << "<Kraken> Done (transaction ID: " << txid << ")\n"
-                  << std::endl;
+                    << std::endl;
   return txid;
 }
 
@@ -178,8 +233,8 @@ std::string Kraken::SendShortOrder(std::string direction, double quantity, doubl
     return "0";
   }
   *m_params.logFile << "<Kraken> Trying to send a short \"" << direction << "\" limit order: "
-                  << std::setprecision(6) << quantity << " @ $"
-                  << std::setprecision(2) << price << "...\n";
+                    << std::setprecision(6) << quantity << " @ $"
+                    << std::setprecision(2) << price << "...\n";
   std::string pair = "XXBTZUSD";
   std::string type = direction;
   std::string ordertype;
@@ -198,7 +253,7 @@ std::string Kraken::SendShortOrder(std::string direction, double quantity, doubl
   }
   std::string txid = json_string_value(json_array_get(json_object_get(res, "txid"), 0));
   *m_params.logFile << "<Kraken> Done (transaction ID: " << txid << ")\n"
-                  << std::endl;
+                    << std::endl;
   return txid;
 }
 
@@ -235,7 +290,7 @@ double Kraken::GetActivePos()
 double Kraken::GetLimitPrice(double volume, bool isBid)
 {
   auto &exchange = queryHandle(m_params);
-  unique_json root { exchange.getRequest("/0/public/Depth?pair=XXBTZUSD") };
+  unique_json root{exchange.getRequest("/0/public/Depth?pair=XXBTZUSD")};
   auto branch = json_object_get(json_object_get(root.get(), "result"), "XXBTZUSD");
   branch = json_object_get(branch, isBid ? "bids" : "asks");
 
@@ -258,7 +313,7 @@ double Kraken::GetLimitPrice(double volume, bool isBid)
   return currPrice;
 }
 
-json_t* Kraken::authRequest(std::string request, std::string options)
+json_t *Kraken::authRequest(std::string request, std::string options)
 {
   // create nonce and POST data
   static uint64_t nonce = time(nullptr) * 4;

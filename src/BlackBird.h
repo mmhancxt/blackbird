@@ -2,6 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <memory>
+#include <set>
 
 #include "Market.h"
 
@@ -35,11 +36,14 @@ private:
 
     void InitializeInstruments();
 
+    void FilterCommonSymbols(const std::set<std::string>& symbols);
+
 private:
     Parameters& m_params;
     std::ofstream& m_log;
     const std::string& m_logFileName;
     std::vector<std::unique_ptr<Market>> m_markets;
+    std::set<std::string> m_commonSymbols;
     //std::vector<ExchangePair> exchangePairs;
 
     bool m_inMarket { false };
