@@ -9,7 +9,7 @@
 #include "utils/send_email.h"
 #include "getpid.h"
 #include "Market.h"
-#include "Feeder.h"
+#include "LiveSource.h"
 
 #include <iostream>
 #include <iomanip>
@@ -128,7 +128,7 @@ void BlackBird::InitializeMarkets()
     if (m_params.krakenEnable &&
         (m_params.krakenApi.empty() == false || m_params.isDemoMode))
     {
-        std::unique_ptr<Market> kraken = std::make_unique<Kraken>("Kraken", index,
+        std::unique_ptr<Market> kraken = std::make_unique<Kraken>("kraken", index,
           m_params.krakenFees, true, m_params);
 
         kraken->SetRequestMultiSymbols(m_params.krakenRequestMultiSymbols);
@@ -139,7 +139,7 @@ void BlackBird::InitializeMarkets()
     if (m_params.binanceEnable &&
         (m_params.binanceApi.empty() == false || m_params.isDemoMode))
     {
-        std::unique_ptr<Market> binance = std::make_unique<Binance>("Binance", index,
+        std::unique_ptr<Market> binance = std::make_unique<Binance>("binance", index,
           m_params.binanceFees, true, m_params);
         m_markets.push_back(std::move(binance));
 
@@ -217,8 +217,11 @@ void BlackBird::Run()
         m_log << "Running..." << std::endl;
     }
 
-    Feeder feeder(m_params, m_markets, m_log);
-    std::thread feedThread(&Feeder::GetMarketData, &feeder);
+    LiveSource liveSource(m_params, m_markets, m_log);
+    std::set<std::string> symbols { "BTC-USD" };
+    liveSource.Subscribe(symbols);
+    // liveSource.GetMarketData();
+    // std::thread feedThread(&LiveSource::GetMarketData, &liveSource);
 
     int resultId = 0;
     unsigned currIteration = 0;
@@ -558,7 +561,7 @@ void BlackBird::Run()
         }
     }
 
-    feedThread.join();
+    //feedThread.join();
     // Analysis loop exited, does some cleanup
     curl_easy_cleanup(m_params.curl);
 }

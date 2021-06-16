@@ -19,7 +19,7 @@
               "MIMode": "gdb"
             }
             ,"osx": {
-              "MIMode": "gdb"
+              "MIMode": "lldb"
             }
             ,"windows": {
               "MIMode": "gdb"
@@ -27,23 +27,16 @@
             ,"preLaunchTask": "launch debug container"
         },
         {
-          "name": "(gdb) Launch",
+          "name": "(lldb) Launch",
           "type": "cppdbg",
           "request": "launch",
           "program": "${workspaceFolder}/blackbird",
           "args": [],
-          "stopAtEntry": true,
+          "stopAtEntry": false,
           "cwd": "${workspaceFolder}",
           "environment": [],
-          "externalConsole": true,
-          "MIMode": "gdb",
-          "setupCommands": [
-            {
-              "description": "Enable pretty-printing for gdb",
-              "text": "-enable-pretty-printing",
-              "ignoreFailures": true
-            }
-          ]
+          "externalConsole": false,
+          "MIMode": "lldb"
         },
     ]
 }

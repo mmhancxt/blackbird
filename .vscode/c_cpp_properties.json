@@ -9,6 +9,7 @@
                 "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
                 "/usr/include",
                 "${workspaceRoot}",
+                "${workspaceRoot}/include",
                 "${workspaceRoot}/src",
                 "/usr/include/c++/4.2.1",
                 "/System/Library/Frameworks/Kernel.framework/Versions/A/Headers",
@@ -24,6 +25,7 @@
                     "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include",
                     "/usr/include",
                     "${workspaceRoot}",
+                    "${workspaceRoot}/include",
                     "${workspaceRoot}/src"
                 ],
                 "limitSymbolsToIncludedHeaders": true,
