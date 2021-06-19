@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <iomanip>
+#include <boost/algorithm/string/case_conv.hpp>
 
 static json_t *authRequest(const Parameters &, std::string, std::string, std::string);
 
@@ -74,10 +75,23 @@ bool Binance::RetrieveInstruments()
     json_t *symbolInfo = nullptr;
     json_array_foreach(resultArray, index, symbolInfo)
     {
-        std::string symbol = json_string_value(json_object_get(symbolInfo, "symbol"));
-        //m_log << "DEBUG : symbol is " << symbol << std::endl;
-        m_rawSymbols.insert(symbol);
+        const std::string symbol = json_string_value(json_object_get(symbolInfo, "symbol"));
+        // m_log << "DEBUG : binance symbol is " << symbol << std::endl;
+        const std::string status = json_string_value(json_object_get(symbolInfo, "status"));
+        if (status != "TRADING")
+        {
+            m_log << "Binace: " << symbol << " trading phase is not TRADING[" << status << "], skip" << std::endl;
+            continue;
+        }
+
+        const std::string baseCcy = json_string_value(json_object_get(symbolInfo, "baseAsset"));
+        const std::string quoteCcy = json_string_value(json_object_get(symbolInfo, "quoteAsset"));
+        auto wsName(symbol);
+        boost::to_lower(wsName);
+        Instrument *instrument = new Instrument(m_id, m_name, symbol, wsName, baseCcy, quoteCcy, m_fees, m_canShort);
+        m_dico.AddInstrument(symbol, instrument);
     }
+    m_log << "Binance dico complete" << std::endl;
     return true;
 }
 

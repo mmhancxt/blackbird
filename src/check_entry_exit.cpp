@@ -1,5 +1,5 @@
 #include "check_entry_exit.h"
-#include "bitcoin.h"
+#include "Instrument.h"
 #include "result.h"
 #include "parameters.h"
 #include <sstream>
@@ -30,13 +30,13 @@ std::string percToStr(double perc) {
   return s.str();
 }
 
-bool checkEntry(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& params) {
+bool checkEntry(Instrument* btcLong, Instrument* btcShort, Result& res, Parameters& params) {
 
-  if (!btcShort->getHasShort()) return false;
+  if (!btcShort->GetHasShort()) return false;
 
   // Gets the prices and computes the spread
-  double priceLong = btcLong->safeGetAsk();
-  double priceShort = btcShort->safeGetBid();
+  double priceLong = btcLong->SafeGetAsk();
+  double priceShort = btcShort->SafeGetBid();
   // If the prices are null we return a null spread
   // to avoid false opportunities
   if (priceLong > 0.0 && priceShort > 0.0) {
@@ -44,8 +44,8 @@ bool checkEntry(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& pa
   } else {
     res.spreadIn = 0.0;
   }
-  int longId = btcLong->getId();
-  int shortId = btcShort->getId();
+  int longId = btcLong->GetId();
+  int shortId = btcShort->GetId();
 
   // We update the max and min spread if necessary
   res.maxSpread[longId][shortId] = std::max(res.spreadIn, res.maxSpread[longId][shortId]);
@@ -53,7 +53,7 @@ bool checkEntry(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& pa
 
   if (params.verbose) {
     params.logFile->precision(2);
-    *params.logFile << "   " << btcLong->getExchName() << "/" << btcShort->getExchName() << ":\t" << percToStr(res.spreadIn);
+    *params.logFile << "   " << btcLong->GetExchName() << "/" << btcShort->GetExchName() << ":\t" << percToStr(res.spreadIn);
     *params.logFile << " [target " << percToStr(params.spreadEntry) << ", min " << percToStr(res.minSpread[longId][shortId]) << ", max " << percToStr(res.maxSpread[longId][shortId]) << "]";
     // The short-term volatility is computed and
     // displayed. No other action with it for
@@ -121,10 +121,10 @@ bool checkEntry(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& pa
   // was found).
   res.idExchLong = longId;
   res.idExchShort = shortId;
-  res.feesLong = btcLong->getFees();
-  res.feesShort = btcShort->getFees();
-  res.exchNameLong = btcLong->getExchName();
-  res.exchNameShort = btcShort->getExchName();
+  res.feesLong = btcLong->GetFees();
+  res.feesShort = btcShort->GetFees();
+  res.exchNameLong = btcLong->GetExchName();
+  res.exchNameShort = btcShort->GetExchName();
   res.priceLongIn = priceLong;
   res.priceShortIn = priceShort;
   res.exitTarget = res.spreadIn - params.spreadTarget - 2.0*(res.feesLong + res.feesShort);
@@ -132,23 +132,23 @@ bool checkEntry(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& pa
   return true;
 }
 
-bool checkExit(Bitcoin* btcLong, Bitcoin* btcShort, Result& res, Parameters& params, time_t period) {
-  double priceLong  = btcLong->safeGetBid();
-  double priceShort = btcShort->safeGetAsk();
+bool checkExit(Instrument* btcLong, Instrument* btcShort, Result& res, Parameters& params, time_t period) {
+  double priceLong  = btcLong->SafeGetBid();
+  double priceShort = btcShort->SafeGetAsk();
   if (priceLong > 0.0 && priceShort > 0.0) {
     res.spreadOut = (priceShort - priceLong) / priceLong;
   } else {
     res.spreadOut = 0.0;
   }
-  int longId = btcLong->getId();
-  int shortId = btcShort->getId();
+  int longId = btcLong->GetId();
+  int shortId = btcShort->GetId();
 
   res.maxSpread[longId][shortId] = std::max(res.spreadOut, res.maxSpread[longId][shortId]);
   res.minSpread[longId][shortId] = std::min(res.spreadOut, res.minSpread[longId][shortId]);
 
   if (params.verbose) {
     params.logFile->precision(2);
-    *params.logFile << "   " << btcLong->getExchName() << "/" << btcShort->getExchName() << ":\t" << percToStr(res.spreadOut);
+    *params.logFile << "   " << btcLong->GetExchName() << "/" << btcShort->GetExchName() << ":\t" << percToStr(res.spreadOut);
     *params.logFile << " [target " << percToStr(res.exitTarget) << ", min " << percToStr(res.minSpread[longId][shortId]) << ", max " << percToStr(res.maxSpread[longId][shortId]) << "]";
     // The short-term volatility is computed and
     // displayed. No other action with it for

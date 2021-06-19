@@ -47,10 +47,19 @@ bool Kraken::RetrieveInstruments()
   json_object_foreach(resultArray, key, pair)
   {
     //char* s = json_dumps(pair, JSON_ENCODE_ANY);
-    // m_log << key << std::endl;
-    m_rawSymbols.insert(key);
+    // m_log << "Kraken : " << key << std::endl;
+    //m_rawSymbols.insert(key);
 
     std::string altName = json_string_value(json_object_get(pair, "altname"));
+    const auto webSocketObj = json_object_get(pair, "wsname");
+    if (webSocketObj == nullptr)
+    {
+      m_log << "Kraken : " << key << " doesn't have wsname field, skip" << std::endl;
+      continue;
+    }
+    const std::string wsName = json_string_value(json_object_get(pair, "wsname"));
+    const std::string baseCcy = json_string_value(json_object_get(pair, "base"));
+    const std::string quoteCcy = json_string_value(json_object_get(pair, "quote"));
     //m_log << altName << std::endl;
 
     for (const auto &p : s_specialNameMap)
@@ -74,7 +83,11 @@ bool Kraken::RetrieveInstruments()
     }
     //m_log << altName << std::endl;
     m_altNameMap[altName] = key;
+
+    Instrument* instrument = new Instrument(m_id, m_name, altName, wsName, baseCcy, quoteCcy, m_fees, m_canShort);
+    m_dico.AddInstrument(altName, instrument);
   }
+  m_log << "Kraken dico complete" << std::endl;
   return true;
 }
 

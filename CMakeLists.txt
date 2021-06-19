@@ -37,9 +37,9 @@ if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   target_compile_definitions(${PROJECT_NAME} PRIVATE NOMINMAX _CRT_SECURE_NO_WARNINGS)
 endif()
 add_compile_definitions(CCAPI_ENABLE_SERVICE_MARKET_DATA)
-add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
 add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE)
 add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KRAKEN)
+#add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
                                       CXX_STANDARD 17

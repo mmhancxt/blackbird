@@ -102,7 +102,7 @@ Parameters::Parameters(std::string fileName) {
 
     for (const auto& pair : pairs)
     {
-      tradedPair.emplace_back(Instrument{pair.substr(0, 3), pair.substr(4)});
+      tradedPair.push_back(pair);
     }
   }
 

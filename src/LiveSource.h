@@ -5,11 +5,15 @@
 
 #pragma once
 
+class Dico;
+
 class LiveSource : public ccapi::EventHandler
 {
 public:
-    LiveSource(const Parameters& params, const std::vector<std::unique_ptr<Market>>& markets,
+    LiveSource(const Parameters& params, const std::unordered_map<std::string, std::unique_ptr<Market>>& markets,
         std::ofstream& log);
+
+    ~LiveSource();
 
     void Subscribe(const std::set<std::string>& symbols);
     void GetMarketData();
@@ -23,7 +27,8 @@ private:
 
 private:
     const Parameters& m_params;
-    const std::vector<std::unique_ptr<Market>>& m_markets;
-    std::ofstream& m_logFile;
+    const std::unordered_map<std::string, std::unique_ptr<Market>>& m_markets;
+    std::ofstream& m_log;
     unique_sqlite m_dbConn;
+    std::unique_ptr<ccapi::Session> m_session;
 };

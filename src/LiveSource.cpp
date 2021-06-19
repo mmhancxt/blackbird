@@ -9,9 +9,9 @@
 #include "parameters.h"
 #include "ccapi_cpp/ccapi_session.h"
 
-LiveSource::LiveSource(const Parameters &params, const std::vector<std::unique_ptr<Market>> &markets,
+LiveSource::LiveSource(const Parameters &params, const std::unordered_map<std::string, std::unique_ptr<Market>> &markets,
                std::ofstream &log)
-    : m_params(params), m_markets(markets), m_logFile(log)
+    : m_params(params), m_markets(markets), m_log(log)
 {
     // Connects to the SQLite3 database.
     // This database is used to collect bid and ask information
@@ -19,16 +19,21 @@ LiveSource::LiveSource(const Parameters &params, const std::vector<std::unique_p
     // would be useful to collect historical bid/ask data.
     if (createDbConnection(m_params, m_dbConn) != 0)
     {
-        m_logFile << "ERROR: cannot connect to the database \'" << m_params.dbFile
+        m_log << "ERROR: cannot connect to the database \'" << m_params.dbFile
                   << "\'\n"
                   << std::endl;
         //exit(EXIT_FAILURE);
     }
 
-    for (const auto &market : markets)
+    for (const auto &p: markets)
     {
-        createTable(market->GetName(), m_params, m_dbConn);
+        createTable(p.first, m_params, m_dbConn);
     }
+}
+
+LiveSource::~LiveSource()
+{
+    m_session->stop();
 }
 
 
@@ -36,47 +41,98 @@ void LiveSource::Subscribe(const std::set<std::string>& symbols)
 {
     using namespace ccapi;
 
-    SessionOptions sessionOptions;
-    SessionConfigs sessionConfigs;
-    Session session(sessionOptions, sessionConfigs, this);
-
-    //Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
-    //session.subscribe(subscription);
-
+    m_log << "Start to subscrib market data" << std::endl;
+    std::map<std::string, std::map<std::string, std::string>> exchangeInstrumentSymbolMap;
     std::vector<Subscription> subscriptionList;
-
-    for (const auto& symbol : symbols)
+    for (const auto &p: m_markets)
     {
-        for (const auto& market : m_markets)
+        const auto& marketName = p.first;
+        const auto& market = p.second;
+        const auto& dico = market->GetDico();
+        for (const auto &symbol : symbols)
         {
-            const std::string subscriptionID = market->GetName() + "|" + symbol;
-            //Subscription subscription(market->GetName(), symbol, "MARKET_DEPTH", "", subscriptionID);
-            Subscription subscription(market->GetName(), symbol, "MARKET_DEPTH");
+            const auto& instr = dico.GetInstrumentBySymbol(symbol);
+            if (instr == nullptr)
+            {
+                m_log << "Error : failed to find " << symbol << " in dico of " << marketName << std::endl;
+                continue;
+            }
+            const std::string subscriptionID = marketName + "|" + symbol;
+            Subscription subscription(marketName, symbol, "MARKET_DEPTH", "", subscriptionID);
+            exchangeInstrumentSymbolMap[marketName][symbol] = instr->GetWSName();
             subscriptionList.push_back(subscription);
         }
     }
-    Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
-    subscriptionList.push_back(subscription);
-    session.subscribe(subscriptionList);
-    std::this_thread::sleep_for(std::chrono::seconds(300));
-    session.stop();
+
+    SessionOptions sessionOptions;
+    SessionConfigs sessionConfigs(exchangeInstrumentSymbolMap);
+    m_session.reset(new Session(sessionOptions, sessionConfigs, this));
+    m_session->subscribe(subscriptionList);
 }
 
 bool LiveSource::processEvent(const ccapi::Event& event, ccapi::Session* session)
 {
     using namespace ccapi;
 
-    m_logFile << toString(event) + "\n" << std::endl;
     if (event.getType() == Event::Type::SUBSCRIPTION_DATA)
     {
         for (const auto &message : event.getMessageList())
         {
-            m_logFile << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:"
-                      << std::endl;
-            for (const auto &element : message.getElementList())
+            const auto& correlationId = message.getCorrelationIdList().at(0);
+            auto pos = correlationId.find('|');
+            if (pos != std::string::npos)
             {
-                const std::map<std::string, std::string> &elementNameValueMap = element.getNameValueMap();
-                m_logFile << "  " + toString(elementNameValueMap) << std::endl;
+                const auto marketName = correlationId.substr(0, pos);
+                const auto symbol = correlationId.substr(pos+1);
+                //m_log << "DEBUG : " << marketName << " : " << symbol << std::endl;
+                const auto it = m_markets.find(marketName);
+                Market* market = nullptr;
+                if (it != m_markets.end())
+                {
+                    market = it->second.get();
+                }
+                else
+                {
+                    m_log << "Market name not found " << marketName << std::endl;
+                    continue;
+                }
+                const auto& dico = market->GetDico();
+                Instrument* instr = dico.GetInstrumentBySymbol(symbol);
+                if (instr == nullptr)
+                {
+                    m_log << "can't find instrument " << symbol << std::endl;
+                    continue;
+                }
+                //m_log << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:" << std::endl;
+                double bidPrice = 0, bidSize = 0, askPrice = 0, askSize = 0;
+                for (const auto &element : message.getElementList())
+                {
+                    const std::map<std::string, std::string> &elementNameValueMap = element.getNameValueMap();
+                    //m_log << "  " + toString(elementNameValueMap) << std::endl;
+
+                    if (element.has("BID_PRICE"))
+                    {
+                        bidPrice = stod(element.getValue("BID_PRICE"));
+                    }
+                    if (element.has("ASK_PRICE"))
+                    {
+                        askPrice = stod(element.getValue("ASK_PRICE"));
+                    }
+                    if (element.has("BID_SIZE"))
+                    {
+                        bidSize = stod(element.getValue("BID_SIZE"));
+                    }
+                    if (element.has("ASK_SIZE"))
+                    {
+                        askSize = stod(element.getValue("ASK_SIZE"));
+                    }
+                }
+                quote_t quote(bidPrice, askPrice);
+                ProcessQuote(symbol, quote, marketName, dico, std::chrono::system_clock::to_time_t(std::chrono::time_point_cast<std::chrono::microseconds>(message.getTime())));
+            }
+            else
+            {
+                m_log << "Error: invalid correlationId " << correlationId << std::endl;
             }
         }
     }
@@ -100,7 +156,7 @@ void LiveSource::GetMarketData()
     }
     if (!m_params.verbose)
     {
-        m_logFile << "Running..." << std::endl;
+        m_log << "Running..." << std::endl;
     }
 
     bool stillRunning = true;
@@ -117,11 +173,11 @@ void LiveSource::GetMarketData()
         // and we show a warning in the log file.
         if (diffTime > 0)
         {
-            m_logFile << "WARNING: " << diffTime << " second(s) too late at " << printDateTime(currTime) << std::endl;
+            m_log << "WARNING: " << diffTime << " second(s) too late at " << printDateTime(currTime) << std::endl;
             timeinfo.tm_sec += (ceil(diffTime / m_params.interval) + 1) * m_params.interval;
             currTime = mktime(&timeinfo);
             sleep_for(secs(m_params.interval - (diffTime % m_params.interval)));
-            m_logFile << std::endl;
+            m_log << std::endl;
         }
         else if (diffTime < 0)
         {
@@ -130,12 +186,13 @@ void LiveSource::GetMarketData()
         // Header for every iteration of the loop
         if (m_params.verbose)
         {
-            m_logFile << "[ " << printDateTime(currTime) << " ]" << std::endl;
+            m_log << "[ " << printDateTime(currTime) << " ]" << std::endl;
         }
         // Gets the bid and ask of all the exchanges
-        for (auto &market : m_markets)
+        for (auto &p : m_markets)
         {
-            const auto &marketName = market->GetName();
+            const auto &marketName = p.first;
+            auto& market = p.second;
 
             const auto &dico = market->GetDico();
             if (market->SupportReuesetMultiSymbols())
@@ -143,17 +200,14 @@ void LiveSource::GetMarketData()
                 std::vector<std::string> ccySymbols;
                 if (m_params.tradedPair.empty())
                 {
-                    for (const auto& p : dico)
+                    for (const auto& p : dico.GetAllInstruments())
                     {
                         ccySymbols.push_back(p.first);
                     }
                 }
                 else
                 {
-                    for (const auto& ccyPair : m_params.tradedPair)
-                    {
-                        ccySymbols.push_back(ccyPair.GetName());
-                    }
+                    ccySymbols = m_params.tradedPair;
                 }
                 std::unordered_map<std::string, quote_t> quotes;
 
@@ -165,9 +219,8 @@ void LiveSource::GetMarketData()
             }
             else
             {
-                for (const auto &currencyPair : m_params.tradedPair)
+                for (const auto &ccyPair : m_params.tradedPair)
                 {
-                    const auto &ccyPair = currencyPair.ToString();
                     auto quote = market->GetQuote(ccyPair);
                     ProcessQuote(ccyPair, quote, marketName, dico, currTime);
                 }
@@ -175,7 +228,7 @@ void LiveSource::GetMarketData()
         }
         if (m_params.verbose)
         {
-            m_logFile << "   ----------------------------" << std::endl;
+            m_log << "   ----------------------------" << std::endl;
         }
     }
 }
@@ -194,30 +247,29 @@ void LiveSource::ProcessQuote(const std::string& ccyPair, const quote_t& quote,
     // we show a warning but we don't stop the loop.
     if (bid == 0.0)
     {
-        m_logFile << "   WARNING: " << marketName << " bid is null" << std::endl;
+        m_log << "   WARNING: " << marketName << " bid is null" << std::endl;
     }
     if (ask == 0.0)
     {
-        m_logFile << "   WARNING: " << marketName << " ask is null" << std::endl;
+        m_log << "   WARNING: " << marketName << " ask is null" << std::endl;
     }
     // Shows the bid/ask information in the log file
     if (m_params.verbose)
     {
-        m_logFile << "   " << marketName << ": \t"
+        m_log << "   " << marketName << ": \t"
                   << ccyPair << ": \t"
-                  << std::setprecision(2)
+                  << std::setprecision(8)
                   << bid << " / " << ask << std::endl;
     }
-    // Updates the Bitcoin vector with the latest bid/ask data
-    auto it = dico.find(ccyPair);
-    if (it != dico.end())
+    // Updates the Instrument vector with the latest bid/ask data
+    auto* instr = dico.GetInstrumentBySymbol(ccyPair);
+    if (instr != nullptr)
     {
-        auto &ccyPairs = it->second;
-        ccyPairs->safeUpdateData(quote);
+        instr->SafeUpdateData(quote);
         curl_easy_reset(m_params.curl);
     }
     else
     {
-        m_logFile << "   ERROR: can't find ExchangePairs for " << ccyPair << " " << marketName << std::endl;
+        m_log << "   ERROR: can't find ExchangePairs for " << ccyPair << " " << marketName << std::endl;
     }
 }

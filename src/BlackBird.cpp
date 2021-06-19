@@ -1,7 +1,7 @@
 #include "BlackBird.h"
-#include "instrument.h"
+#include "Instrument.h"
+#include "Dico.h"
 #include "result.h"
-#include "bitcoin.h"
 #include "check_entry_exit.h"
 #include "exchanges/Kraken.h"
 #include "exchanges/Binance.h"
@@ -79,9 +79,10 @@ bool BlackBird::Initialize()
     m_inMarket = res.loadPartialResult("restore.txt");
 
     // Writes the current balances into the log file
-    for (const auto& market : m_markets)
+    for (const auto& p : m_markets)
     {
-        m_log << "   " << market->GetName() << ":\t";
+        const auto& market = p.second;
+        m_log << "   " << p.first << ":\t";
         if (m_params.isDemoMode)
         {
             m_log << "n/a (demo mode)" << std::endl;
@@ -132,7 +133,7 @@ void BlackBird::InitializeMarkets()
           m_params.krakenFees, true, m_params);
 
         kraken->SetRequestMultiSymbols(m_params.krakenRequestMultiSymbols);
-        m_markets.push_back(std::move(kraken));
+        m_markets["kraken"] = std::move(kraken);
 
         index++;
     }
@@ -141,7 +142,7 @@ void BlackBird::InitializeMarkets()
     {
         std::unique_ptr<Market> binance = std::make_unique<Binance>("binance", index,
           m_params.binanceFees, true, m_params);
-        m_markets.push_back(std::move(binance));
+        m_markets["binance"] = std::move(binance);
 
         index++;
     }
@@ -156,25 +157,29 @@ void BlackBird::InitializeMarkets()
 
 void BlackBird::InitializeInstruments()
 {
-    for (auto& market : m_markets)
+    for (auto& p : m_markets)
     {
+        auto& market = p.second;
+        m_log << "Start to retrieve dico for " << p.first << std::endl;
         market->RetrieveInstruments();
-        FilterCommonSymbols(market->GetRawSymbols());
+        FilterCommonSymbols(market->GetDico());
     }
 
-    for (auto& market : m_markets)
+    m_log << "Common symbol size : " << m_commonSymbols.size() << std::endl;
+    for (const auto& symbol : m_commonSymbols)
     {
-        market->InitializeInstruments(m_commonSymbols);
+      m_log << symbol << ",";
     }
+    m_log << std::endl;
 }
 
-void BlackBird::FilterCommonSymbols(const std::set<std::string>& symbols)
+void BlackBird::FilterCommonSymbols(const Dico& dico)
 {
   if (m_commonSymbols.empty())
   {
-    for (const auto& symbol : symbols)
+    for (const auto& p : dico.GetAllInstruments())
     {
-      m_commonSymbols.insert(symbol);
+      m_commonSymbols.insert(p.first);
     }
   }
   else
@@ -183,7 +188,7 @@ void BlackBird::FilterCommonSymbols(const std::set<std::string>& symbols)
     while (it != m_commonSymbols.end())
     {
       const auto& symbol = *it;
-      if (symbols.find(symbol) == symbols.end())
+      if (dico.GetInstrumentBySymbol(symbol) == nullptr)
       {
         it = m_commonSymbols.erase(it);
       }
@@ -218,8 +223,7 @@ void BlackBird::Run()
     }
 
     LiveSource liveSource(m_params, m_markets, m_log);
-    std::set<std::string> symbols { "BTC-USD" };
-    liveSource.Subscribe(symbols);
+    liveSource.Subscribe(m_commonSymbols);
     // liveSource.GetMarketData();
     // std::thread feedThread(&LiveSource::GetMarketData, &liveSource);
 
@@ -230,7 +234,7 @@ void BlackBird::Run()
     time_t diffTime;
 
     // Main analysis loop
-    while (stillRunning)
+    while (true)
     {
         /*
     currTime = mktime(&timeinfo);
@@ -545,20 +549,20 @@ void BlackBird::Run()
         // the maxmum is reached.
         timeinfo.tm_sec += m_params.interval;
         currIteration++;
-        if (currIteration >= m_params.debugMaxIteration)
-        {
-            m_log << "Max iteration reached (" << m_params.debugMaxIteration << ")" << std::endl;
-            stillRunning = false;
-        }
+        // if (currIteration >= m_params.debugMaxIteration)
+        // {
+        //     m_log << "Max iteration reached (" << m_params.debugMaxIteration << ")" << std::endl;
+        //     stillRunning = false;
+        // }
         // Exits if a 'stop_after_notrade' file is found
         // Warning: by default on GitHub the file has a underscore
         // at the end, so Blackbird is not stopped by default.
-        std::ifstream infile("stop_after_notrade");
-        if (infile && !m_inMarket)
-        {
-            m_log << "Exit after last trade (file stop_after_notrade found)\n";
-            stillRunning = false;
-        }
+        // std::ifstream infile("stop_after_notrade");
+        // if (infile && !m_inMarket)
+        // {
+        //     m_log << "Exit after last trade (file stop_after_notrade found)\n";
+        //     stillRunning = false;
+        // }
     }
 
     //feedThread.join();
