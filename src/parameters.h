@@ -28,7 +28,7 @@ struct Parameters {
   unsigned trailingCount;
   double orderBookFactor;
   bool isDemoMode;
-  std::vector<Instrument> tradedPair;
+  std::vector<std::string> tradedPair;
   //std::string leg1;
   //std::string leg2;
   bool verbose;

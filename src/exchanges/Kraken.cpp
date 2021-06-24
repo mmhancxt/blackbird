@@ -2,6 +2,7 @@
 #include "parameters.h"
 #include "utils/restapi.h"
 #include "utils/base64.h"
+#include "utils/StringUtil.h"
 #include "unique_json.hpp"
 
 #include "openssl/sha.h"
@@ -16,7 +17,7 @@
 static unique_json krakenTicker = nullptr;
 static bool krakenGotTicker = false;
 
-static std::unordered_map<std::string, std::string> s_specialNameMap =
+static std::unordered_map<std::string, std::string> s_krakenSpecialNameMap =
     {
         {"XBT", "BTC"},
         {"XDG", "DOGE"}};
@@ -46,35 +47,27 @@ bool Kraken::RetrieveInstruments()
   json_t *pair = nullptr;
   json_object_foreach(resultArray, key, pair)
   {
-    //char* s = json_dumps(pair, JSON_ENCODE_ANY);
-    // m_log << key << std::endl;
-    m_rawSymbols.insert(key);
-
     std::string altName = json_string_value(json_object_get(pair, "altname"));
-    //m_log << altName << std::endl;
-
-    for (const auto &p : s_specialNameMap)
+    const auto webSocketObj = json_object_get(pair, "wsname");
+    if (webSocketObj == nullptr)
     {
-      const auto& k = p.first;
-      const auto& v = p.second;
-
-      size_t index = altName.find(k);
-      if (index != std::string::npos)
-      {
-        auto len = k.size();
-        if (index == 0)
-        {
-          altName = v + altName.substr(len);
-        }
-        else
-        {
-          altName = altName.substr(0, len) + v;
-        }
-      }
+      m_log << "Kraken : " << key << " doesn't have wsname field, skip" << std::endl;
+      continue;
     }
-    //m_log << altName << std::endl;
+    const std::string wsName = json_string_value(json_object_get(pair, "wsname"));
+    const std::string baseCcy = json_string_value(json_object_get(pair, "base"));
+    const std::string quoteCcy = json_string_value(json_object_get(pair, "quote"));
+
+    for (const auto &p : s_krakenSpecialNameMap)
+    {
+      utils::Replace(altName, p.first, p.second);
+    }
     m_altNameMap[altName] = key;
+
+    Instrument* instrument = new Instrument(m_id, m_name, altName, wsName, baseCcy, quoteCcy, m_fees, m_canShort);
+    m_dico.AddInstrument(altName, instrument);
   }
+  m_log << "Kraken dico complete" << std::endl;
   return true;
 }
 

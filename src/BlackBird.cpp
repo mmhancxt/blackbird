@@ -1,7 +1,7 @@
 #include "BlackBird.h"
-#include "instrument.h"
+#include "Instrument.h"
+#include "Dico.h"
 #include "result.h"
-#include "bitcoin.h"
 #include "check_entry_exit.h"
 #include "exchanges/Kraken.h"
 #include "exchanges/Binance.h"
@@ -9,7 +9,7 @@
 #include "utils/send_email.h"
 #include "getpid.h"
 #include "Market.h"
-#include "Feeder.h"
+#include "LiveSource.h"
 
 #include <iostream>
 #include <iomanip>
@@ -79,9 +79,10 @@ bool BlackBird::Initialize()
     m_inMarket = res.loadPartialResult("restore.txt");
 
     // Writes the current balances into the log file
-    for (const auto& market : m_markets)
+    for (const auto& p : m_markets)
     {
-        m_log << "   " << market->GetName() << ":\t";
+        const auto& market = p.second;
+        m_log << "   " << p.first << ":\t";
         if (m_params.isDemoMode)
         {
             m_log << "n/a (demo mode)" << std::endl;
@@ -128,20 +129,20 @@ void BlackBird::InitializeMarkets()
     if (m_params.krakenEnable &&
         (m_params.krakenApi.empty() == false || m_params.isDemoMode))
     {
-        std::unique_ptr<Market> kraken = std::make_unique<Kraken>("Kraken", index,
+        std::unique_ptr<Market> kraken = std::make_unique<Kraken>("kraken", index,
           m_params.krakenFees, true, m_params);
 
         kraken->SetRequestMultiSymbols(m_params.krakenRequestMultiSymbols);
-        m_markets.push_back(std::move(kraken));
+        m_markets["kraken"] = std::move(kraken);
 
         index++;
     }
     if (m_params.binanceEnable &&
         (m_params.binanceApi.empty() == false || m_params.isDemoMode))
     {
-        std::unique_ptr<Market> binance = std::make_unique<Binance>("Binance", index,
+        std::unique_ptr<Market> binance = std::make_unique<Binance>("binance", index,
           m_params.binanceFees, true, m_params);
-        m_markets.push_back(std::move(binance));
+        m_markets["binance"] = std::move(binance);
 
         index++;
     }
@@ -156,25 +157,29 @@ void BlackBird::InitializeMarkets()
 
 void BlackBird::InitializeInstruments()
 {
-    for (auto& market : m_markets)
+    for (auto& p : m_markets)
     {
+        auto& market = p.second;
+        m_log << "Start to retrieve dico for " << p.first << std::endl;
         market->RetrieveInstruments();
-        FilterCommonSymbols(market->GetRawSymbols());
+        FilterCommonSymbols(market->GetDico());
     }
 
-    for (auto& market : m_markets)
+    m_log << "Common symbol size : " << m_commonSymbols.size() << std::endl;
+    for (const auto& symbol : m_commonSymbols)
     {
-        market->InitializeInstruments(m_commonSymbols);
+      m_log << symbol << ",";
     }
+    m_log << std::endl;
 }
 
-void BlackBird::FilterCommonSymbols(const std::set<std::string>& symbols)
+void BlackBird::FilterCommonSymbols(const Dico& dico)
 {
   if (m_commonSymbols.empty())
   {
-    for (const auto& symbol : symbols)
+    for (const auto& p : dico.GetAllInstruments())
     {
-      m_commonSymbols.insert(symbol);
+      m_commonSymbols.insert(p.first);
     }
   }
   else
@@ -183,7 +188,7 @@ void BlackBird::FilterCommonSymbols(const std::set<std::string>& symbols)
     while (it != m_commonSymbols.end())
     {
       const auto& symbol = *it;
-      if (symbols.find(symbol) == symbols.end())
+      if (dico.GetInstrumentBySymbol(symbol) == nullptr)
       {
         it = m_commonSymbols.erase(it);
       }
@@ -217,8 +222,10 @@ void BlackBird::Run()
         m_log << "Running..." << std::endl;
     }
 
-    Feeder feeder(m_params, m_markets, m_log);
-    std::thread feedThread(&Feeder::GetMarketData, &feeder);
+    LiveSource liveSource(m_params, m_markets, m_log);
+    liveSource.Subscribe(m_commonSymbols);
+    // liveSource.GetMarketData();
+    // std::thread feedThread(&LiveSource::GetMarketData, &liveSource);
 
     int resultId = 0;
     unsigned currIteration = 0;
@@ -227,24 +234,59 @@ void BlackBird::Run()
     time_t diffTime;
 
     // Main analysis loop
-    while (stillRunning)
+    while (true)
     {
-        /*
-    currTime = mktime(&timeinfo);
-    time(&rawtime);
-    diffTime = difftime(rawtime, currTime);
-    // Checks if we are already too late in the current iteration
-    // If that's the case we wait until the next iteration
-    // and we show a warning in the log file.
-    if (diffTime > 0) {
-      m_log << "WARNING: " << diffTime << " second(s) too late at " << printDateTime(currTime) << std::endl;
-      timeinfo.tm_sec += (ceil(diffTime / m_params.interval) + 1) * m_params.interval;
-      currTime = mktime(&timeinfo);
-      sleep_for(secs(m_params.interval - (diffTime % m_params.interval)));
-      m_log << std::endl;
-    } else if (diffTime < 0) {
-      sleep_for(secs(-diffTime));
-    }
+      for (const auto& symbol : m_commonSymbols)
+      {
+        for (auto it = m_markets.begin(); it != m_markets.end(); ++it)
+        {
+          const auto& marketName1 = it->first;
+          const auto* market1 = it->second.get();
+          const auto& dico1 = market1->GetDico();
+          auto* instr1 = dico1.GetInstrumentBySymbol(symbol);
+          assert(instr1 != nullptr);
+          if (instr1->HasMarketUpdate())
+          {
+            auto quote1 = instr1->SafeGetBidAsk();
+            const double bid1 = quote1.first;
+            const double ask1 = quote1.second;
+
+            auto it2 = it;
+            ++it2;
+            while (it2 != m_markets.end())
+            {
+              const auto& marketName2 = it2->first;
+              const auto* market2 = it2->second.get();
+              const auto& dico2 = market2->GetDico();
+              auto* instr2 = dico2.GetInstrumentBySymbol(symbol);
+              assert(instr2 != nullptr);
+              auto quote2 = instr2->SafeGetBidAskReadOnly();
+              const double bid2 = quote2.first;
+              const double ask2 = quote2.second;
+
+              time_t now = std::time(nullptr);
+
+              const double profit1 = bid1 - ask2 - bid1 * instr1->GetFees() - ask2 * instr2->GetFees();
+              const double profit2 = bid2 - ask1 - ask1 * instr1->GetFees() - bid2 * instr2->GetFees();
+              if (profit1 > 0)
+              {
+                m_log << std::asctime(std::localtime(&now));
+                m_log << "Found opportunity for " << symbol << " : " << marketName1 << " : " << std::setprecision(8) << bid1 << "/"
+                  << marketName2 << " : " << ask2 << " profit " << profit1 << " " << profit1/bid1 * 10000 << " bps" << std::endl;
+              }
+              else if (profit2 > 0)
+              {
+                m_log << std::asctime(std::localtime(&now));
+                m_log << "Found opportunity for " << symbol << " : " << marketName2 << " : " << std::setprecision(8) << bid2 << "/"
+                  << marketName1 << " : " << ask1 << " profit " << profit2 << " " << profit2/bid2 * 10000 << " bps" << std::endl;
+              }
+
+              ++it2;
+            }
+          }
+        }
+      }
+      /*
     // Header for every iteration of the loop
     if (m_params.verbose) {
       if (!inMarket) {
@@ -252,52 +294,7 @@ void BlackBird::Run()
       } else {
         m_log << "[ " << printDateTime(currTime) << " IN MARKET: Long " << res.exchNameLong << " / Short " << res.exchNameShort << " ]" << std::endl;
       }
-    }
-    // Gets the bid and ask of all the exchanges
-    for (const auto& currencyPair : m_params.tradedPair)
-    {
-      const auto& ccyPair = currencyPair.ToString();
-      for (int i = 0; i < numExch; ++i) {
-        auto quote = getQuote[i](m_params, ccyPair);
-        double bid = quote.bid();
-        double ask = quote.ask();
-
-        // Saves the bid/ask into the SQLite database
-        addBidAskToDb(dbTableName[i], ccyPair, printDateTimeDb(currTime), bid, ask, m_params);
-
-        // If there is an error with the bid or ask (i.e. value is null),
-        // we show a warning but we don't stop the loop.
-        if (bid == 0.0) {
-          m_log << "   WARNING: " << m_params.exchName[i] << " bid is null" << std::endl;
-        }
-        if (ask == 0.0) {
-          m_log << "   WARNING: " << m_params.exchName[i] << " ask is null" << std::endl;
-        }
-        // Shows the bid/ask information in the log file
-        if (m_params.verbose) {
-          m_log << "   " << m_params.exchName[i] << ": \t"
-                  << ccyPair << ": \t"
-                  << std::setprecision(2)
-                  << bid << " / " << ask << std::endl;
-        }
-        // Updates the Bitcoin vector with the latest bid/ask data
-        auto it = exchangePairs[i].find(ccyPair);
-        if (it != exchangePairs[i].end())
-        {
-          auto& ccyPairs = it->second;
-          ccyPairs->safeUpdateData(quote);
-          curl_easy_reset(m_params.curl);
-        }
-        else
-        {
-          m_log << "   ERROR: can't find ExchangePairs for " << ccyPair << " " << i << std::endl;
-        }
-      }
-    }
-    if (m_params.verbose) {
-      m_log << "   ----------------------------" << std::endl;
-    }
-    */
+    } */
         // Stores all the spreads in arrays to
         // compute the volatility. The volatility
         // is not used for the moment.
@@ -321,7 +318,7 @@ void BlackBird::Run()
         //   }
         // }
         // Looks for arbitrage opportunities on all the exchange combinations
-        /* TODO
+        /*
     if (!inMarket) {
       for (int i = 0; i < numExch; ++i) {
         for (int j = 0; j < numExch; ++j) {
@@ -542,23 +539,23 @@ void BlackBird::Run()
         // the maxmum is reached.
         timeinfo.tm_sec += m_params.interval;
         currIteration++;
-        if (currIteration >= m_params.debugMaxIteration)
-        {
-            m_log << "Max iteration reached (" << m_params.debugMaxIteration << ")" << std::endl;
-            stillRunning = false;
-        }
+        // if (currIteration >= m_params.debugMaxIteration)
+        // {
+        //     m_log << "Max iteration reached (" << m_params.debugMaxIteration << ")" << std::endl;
+        //     stillRunning = false;
+        // }
         // Exits if a 'stop_after_notrade' file is found
         // Warning: by default on GitHub the file has a underscore
         // at the end, so Blackbird is not stopped by default.
-        std::ifstream infile("stop_after_notrade");
-        if (infile && !m_inMarket)
-        {
-            m_log << "Exit after last trade (file stop_after_notrade found)\n";
-            stillRunning = false;
-        }
+        // std::ifstream infile("stop_after_notrade");
+        // if (infile && !m_inMarket)
+        // {
+        //     m_log << "Exit after last trade (file stop_after_notrade found)\n";
+        //     stillRunning = false;
+        // }
     }
 
-    feedThread.join();
+    //feedThread.join();
     // Analysis loop exited, does some cleanup
     curl_easy_cleanup(m_params.curl);
 }

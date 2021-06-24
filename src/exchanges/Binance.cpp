@@ -1,6 +1,7 @@
 #include "Binance.h"
 #include "parameters.h"
 #include "utils/restapi.h"
+#include "utils/StringUtil.h"
 #include "unique_json.hpp"
 #include "hex_str.hpp"
 #include "time_fun.h"
@@ -13,6 +14,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <iomanip>
+#include <boost/algorithm/string/case_conv.hpp>
 
 static json_t *authRequest(const Parameters &, std::string, std::string, std::string);
 
@@ -24,6 +26,13 @@ static RestApi &queryHandle(const Parameters &params)
                          params.cacert.c_str(), *params.logFile);
     return query;
 }
+
+
+static std::unordered_map<std::string, std::string> s_binanceSpecialNameMap =
+{
+    {"REP", "REPV2"}
+};
+
 
 bool Binance::RetrieveInstruments()
 {
@@ -38,9 +47,34 @@ bool Binance::RetrieveInstruments()
     json_array_foreach(resultArray, index, symbolInfo)
     {
         std::string symbol = json_string_value(json_object_get(symbolInfo, "symbol"));
-        //m_log << "DEBUG : symbol is " << symbol << std::endl;
-        m_rawSymbols.insert(symbol);
+        // m_log << "DEBUG : binance symbol is " << symbol << std::endl;
+        const std::string status = json_string_value(json_object_get(symbolInfo, "status"));
+        if (status != "TRADING")
+        {
+            m_log << "Binace: " << symbol << " trading phase is not TRADING[" << status << "], skip" << std::endl;
+            continue;
+        }
+
+        const std::string baseCcy = json_string_value(json_object_get(symbolInfo, "baseAsset"));
+        const std::string quoteCcy = json_string_value(json_object_get(symbolInfo, "quoteAsset"));
+
+        auto it = s_binanceSpecialNameMap.find(baseCcy);
+        if (it != s_binanceSpecialNameMap.end())
+        {
+           utils::Replace(symbol, baseCcy, it->second);
+        }
+        it = s_binanceSpecialNameMap.find(quoteCcy);
+        if (it != s_binanceSpecialNameMap.end())
+        {
+            utils::Replace(symbol, quoteCcy, it->second);
+        }
+
+        auto wsName(symbol);
+        boost::to_lower(wsName);
+        Instrument *instrument = new Instrument(m_id, m_name, symbol, wsName, baseCcy, quoteCcy, m_fees, m_canShort);
+        m_dico.AddInstrument(symbol, instrument);
     }
+    m_log << "Binance dico complete" << std::endl;
     return true;
 }
 
