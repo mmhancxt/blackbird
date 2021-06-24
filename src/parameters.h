@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <curl/curl.h>
+#include "spdlog/spdlog.h"
 
 // Stores all the parameters defined
 // in the configuration file.
@@ -32,7 +33,8 @@ struct Parameters {
   //std::string leg1;
   //std::string leg2;
   bool verbose;
-  std::ofstream* logFile;
+  //std::ofstream* logFile;
+  std::shared_ptr<spdlog::logger> logger;
   unsigned interval;
   unsigned debugMaxIteration;
   bool useFullExposure;

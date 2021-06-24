@@ -7,7 +7,7 @@
 
 
 namespace {
-  
+
 // automatic init of curl's systems
 struct CurlStartup {
   CurlStartup()   { curl_global_init(CURL_GLOBAL_ALL); }
@@ -24,10 +24,10 @@ size_t recvCallback(void *contents, size_t size, size_t nmemb, void *userp) {
 json_t* doRequest(CURL *C,
                   const std::string &url,
                   const curl_slist *headers,
-                  std::ostream &log) {
+                  std::shared_ptr<spdlog::logger> log) {
   std::string recvBuffer;
   curl_easy_setopt(C, CURLOPT_WRITEDATA, &recvBuffer);
-                    
+
   curl_easy_setopt(C, CURLOPT_URL, url.c_str());
   curl_easy_setopt(C, CURLOPT_HTTPHEADER, headers);
   curl_easy_setopt(C, CURLOPT_DNS_CACHE_TIMEOUT, 3600);
@@ -35,7 +35,7 @@ json_t* doRequest(CURL *C,
   goto curl_state;
 
 retry_state:
-  log << "  Retry in 2 sec..." << std::endl;
+  log->info("  Retry in 2 sec...");
   std::this_thread::sleep_for(std::chrono::seconds(2));
   recvBuffer.clear();
   curl_easy_setopt(C, CURLOPT_DNS_CACHE_TIMEOUT, 0);
@@ -43,8 +43,7 @@ retry_state:
 curl_state:
   CURLcode resCurl = curl_easy_perform(C);
   if (resCurl != CURLE_OK) {
-    log << "Error with cURL: " << curl_easy_strerror(resCurl) << '\n'
-        << "  URL: " << url << '\n';
+    log->error("Error with cURL: {}, URL: {}", curl_easy_strerror(resCurl), url);
 
     goto retry_state;
   }
@@ -56,9 +55,10 @@ curl_state:
   if (!root) {
     long resp_code;
     curl_easy_getinfo(C, CURLINFO_RESPONSE_CODE, &resp_code);
-    log << "Server Response: " << resp_code << " - " << url << '\n'
-        << "Error with JSON: " << error.text << '\n'
-        << "Buffer:\n"         << recvBuffer << '\n';
+    log->info("Server Response: {} - {}", resp_code, url);
+    log->info("Error with JSON: {}", error.text);
+    log->info("Buffer:");
+    log->info(recvBuffer);
 
     goto retry_state;
   }
@@ -75,8 +75,8 @@ void RestApi::CURL_deleter::operator () (curl_slist *slist) {
   curl_slist_free_all(slist);
 }
 
-RestApi::RestApi(string host, const char *cacert, std::ostream &log)
-    : C(curl_easy_init()), host(std::move(host)), log(log) {
+RestApi::RestApi(string host, const char *cacert, std::shared_ptr<spdlog::logger> logger)
+    : C(curl_easy_init()), host(std::move(host)), log(logger) {
   assert(C != nullptr);
 
   if (cacert)

@@ -25,7 +25,7 @@ static std::unordered_map<std::string, std::string> s_krakenSpecialNameMap =
 static RestApi &queryHandle(const Parameters &params)
 {
   static RestApi query("https://api.kraken.com",
-                       params.cacert.c_str(), *params.logFile);
+                       params.cacert.c_str(), params.logger);
   return query;
 }
 
@@ -51,7 +51,7 @@ bool Kraken::RetrieveInstruments()
     const auto webSocketObj = json_object_get(pair, "wsname");
     if (webSocketObj == nullptr)
     {
-      m_log << "Kraken : " << key << " doesn't have wsname field, skip" << std::endl;
+      m_log->info("Kraken : {} doesn't have wsname field, skip", key);
       continue;
     }
     const std::string wsName = json_string_value(json_object_get(pair, "wsname"));
@@ -67,7 +67,7 @@ bool Kraken::RetrieveInstruments()
     Instrument* instrument = new Instrument(m_id, m_name, altName, wsName, baseCcy, quoteCcy, m_fees, m_canShort);
     m_dico.AddInstrument(altName, instrument);
   }
-  m_log << "Kraken dico complete" << std::endl;
+  m_log->info("Kraken dico complete");
   return true;
 }
 
@@ -179,7 +179,7 @@ double Kraken::GetAvail(std::string currency)
   }
   else
   {
-    *m_params.logFile << "<Kraken> Currency not supported" << std::endl;
+    m_log->info("<Kraken> Currency not supported");
   }
   return available;
 }
@@ -193,12 +193,12 @@ std::string Kraken::SendOrder(std::string direction, double quantity, double pri
 {
   if (direction.compare("buy") != 0 && direction.compare("sell") != 0)
   {
-    *m_params.logFile << "<Kraken> Error: Neither \"buy\" nor \"sell\" selected" << std::endl;
+    // *m_params.logFile << "<Kraken> Error: Neither \"buy\" nor \"sell\" selected" << std::endl;
     return "0";
   }
-  *m_params.logFile << "<Kraken> Trying to send a \"" << direction << "\" limit order: "
-                    << std::setprecision(6) << quantity << " @ $"
-                    << std::setprecision(2) << price << "...\n";
+  // *m_params.logFile << "<Kraken> Trying to send a \"" << direction << "\" limit order: "
+  //                   << std::setprecision(6) << quantity << " @ $"
+  //                   << std::setprecision(2) << price << "...\n";
   std::string pair = "XXBTZUSD";
   std::string type = direction;
   std::string ordertype = "limit";
@@ -209,12 +209,12 @@ std::string Kraken::SendOrder(std::string direction, double quantity, double pri
   json_t *res = json_object_get(root.get(), "result");
   if (json_is_object(res) == 0)
   {
-    *m_params.logFile << json_dumps(root.get(), 0) << std::endl;
+    // *m_params.logFile << json_dumps(root.get(), 0) << std::endl;
     exit(0);
   }
   std::string txid = json_string_value(json_array_get(json_object_get(res, "txid"), 0));
-  *m_params.logFile << "<Kraken> Done (transaction ID: " << txid << ")\n"
-                    << std::endl;
+  // *m_params.logFile << "<Kraken> Done (transaction ID: " << txid << ")\n"
+  //                   << std::endl;
   return txid;
 }
 
@@ -222,12 +222,12 @@ std::string Kraken::SendShortOrder(std::string direction, double quantity, doubl
 {
   if (direction.compare("buy") != 0 && direction.compare("sell") != 0)
   {
-    *m_params.logFile << "<Kraken> Error: Neither \"buy\" nor \"sell\" selected" << std::endl;
+    // *m_params.logFile << "<Kraken> Error: Neither \"buy\" nor \"sell\" selected" << std::endl;
     return "0";
   }
-  *m_params.logFile << "<Kraken> Trying to send a short \"" << direction << "\" limit order: "
-                    << std::setprecision(6) << quantity << " @ $"
-                    << std::setprecision(2) << price << "...\n";
+  // *m_params.logFile << "<Kraken> Trying to send a short \"" << direction << "\" limit order: "
+  //                   << std::setprecision(6) << quantity << " @ $"
+  //                   << std::setprecision(2) << price << "...\n";
   std::string pair = "XXBTZUSD";
   std::string type = direction;
   std::string ordertype;
@@ -241,12 +241,12 @@ std::string Kraken::SendShortOrder(std::string direction, double quantity, doubl
   json_t *res = json_object_get(root.get(), "result");
   if (json_is_object(res) == 0)
   {
-    *m_params.logFile << json_dumps(root.get(), 0) << std::endl;
+    // *m_params.logFile << json_dumps(root.get(), 0) << std::endl;
     exit(0);
   }
   std::string txid = json_string_value(json_array_get(json_object_get(res, "txid"), 0));
-  *m_params.logFile << "<Kraken> Done (transaction ID: " << txid << ")\n"
-                    << std::endl;
+  // *m_params.logFile << "<Kraken> Done (transaction ID: " << txid << ")\n"
+  //                   << std::endl;
   return txid;
 }
 
@@ -257,20 +257,20 @@ bool Kraken::IsOrderComplete(std::string orderId)
   auto res = json_object_get(json_object_get(root.get(), "result"), "open");
   if (json_object_size(res) == 0)
   {
-    *m_params.logFile << "<Kraken> No order exists" << std::endl;
+    // *m_params.logFile << "<Kraken> No order exists" << std::endl;
     return true;
   }
   res = json_object_get(res, orderId.c_str());
   // open orders exist but specific order not found: return true
   if (json_object_size(res) == 0)
   {
-    *m_params.logFile << "<Kraken> Order " << orderId << " does not exist" << std::endl;
+    // *m_params.logFile << "<Kraken> Order " << orderId << " does not exist" << std::endl;
     return true;
     // open orders exist and specific order was found: return false
   }
   else
   {
-    *m_params.logFile << "<Kraken> Order " << orderId << " still exists!" << std::endl;
+    // *m_params.logFile << "<Kraken> Order " << orderId << " still exists!" << std::endl;
     return false;
   }
 }
@@ -346,7 +346,7 @@ void Kraken::testKraken()
 {
 
   Parameters m_params("bird.conf");
-  m_params.logFile = new std::ofstream("./test.log", std::ofstream::trunc);
+  // m_params.logFile = new std::ofstream("./test.log", std::ofstream::trunc);
 
   std::string orderId;
 

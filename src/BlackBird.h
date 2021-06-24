@@ -1,10 +1,9 @@
 #pragma once
-#include <fstream>
 #include <vector>
 #include <memory>
 #include <set>
 #include <unordered_map>
-
+#include "spdlog/spdlog.h"
 #include "Market.h"
 
 struct Parameters;
@@ -13,9 +12,9 @@ class Dico;
 class BlackBird
 {
 public:
-    BlackBird(Parameters& params, std::ofstream& logStream, const std::string& logName)
+    BlackBird(Parameters& params, std::shared_ptr<spdlog::logger> logger, const std::string& logName)
         : m_params(params),
-        m_log(logStream),
+        m_log(logger),
         m_logFileName(logName)
     {
     }
@@ -34,7 +33,7 @@ public:
         double leg1After, leg2After;
     };
 private:
-    void InitializeMarkets();
+    bool InitializeMarkets();
 
     void InitializeInstruments();
 
@@ -42,7 +41,7 @@ private:
 
 private:
     Parameters& m_params;
-    std::ofstream& m_log;
+    std::shared_ptr<spdlog::logger> m_log;
     const std::string& m_logFileName;
     std::unordered_map<std::string, std::unique_ptr<Market>> m_markets;
     std::set<std::string> m_commonSymbols;

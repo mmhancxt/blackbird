@@ -21,6 +21,7 @@ find_package(Jansson)
 find_package(OpenSSL)
 find_package(SQLite3)
 find_package(Boost 1.76 REQUIRED)
+find_package(spdlog REQUIRED)
 
 file(GLOB SOURCES
     src/*.cpp
@@ -55,10 +56,11 @@ target_include_directories (${PROJECT_NAME} PRIVATE
                             ${CURL_INCLUDE_DIR}
                             ${OPENSSL_INCLUDE_DIR}
                             ${JANSSON_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} ${CURL_LIBRARIES}
+target_link_libraries(${PROJECT_NAME} PRIVATE ${CURL_LIBRARIES}
                                       ${JANSSON_LIBRARIES}
                                       ${OPENSSL_LIBRARIES}
-                                      ${SQLITE3_LIBRARIES})
+                                      ${SQLITE3_LIBRARIES}
+                                      spdlog::spdlog)
 install(TARGETS ${PROJECT_NAME}
         RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/..)
 cotire(${PROJECT_NAME})

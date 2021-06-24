@@ -3,6 +3,8 @@
 #include <iostream>
 #include <fstream>
 #include "BlackBird.h"
+#include "spdlog/spdlog.h"
+#include "spdlog/sinks/basic_file_sink.h"
 
 
 // 'main' function.
@@ -39,25 +41,29 @@ int main(int argc, char** argv) {
           << std::endl;
   // Creates the log file where all events will be saved
   std::string logFileName = "output/blackbird_log_" + currDateTime + ".log";
-  std::ofstream logFile(logFileName, std::ofstream::trunc);
-  logFile.imbue(std::locale());
-  logFile.precision(2);
-  logFile << std::fixed;
-  params.logFile = &logFile;
-  // Log file header
-  logFile << "--------------------------------------------" << std::endl;
-  logFile << "|   Blackbird Bitcoin Arbitrage Log File   |" << std::endl;
-  logFile << "--------------------------------------------\n" << std::endl;
-  logFile << "Blackbird started on " << printDateTime() << "\n" << std::endl;
+  try
+  {
+    auto logger = spdlog::basic_logger_mt("basic_logger", logFileName, true);
+    spdlog::flush_every(std::chrono::seconds(1));
+    params.logger = logger;
+    // Log file header
+    logger->info("--------------------------------------------" );
+    logger->info("|   Blackbird Bitcoin Arbitrage Log File   |");
+    logger->info("--------------------------------------------");
+    logger->info("Blackbird started on {}", printDateTime());
 
-  // logFile << "Connected to database \'" << params.dbFile << "\'\n" << std::endl;
+    // logFile << "Connected to database \'" << params.dbFile << "\'\n" << std::endl;
 
-  BlackBird blackBird(params, logFile, logFileName);
-  blackBird.Initialize();
-  blackBird.Run();
+    BlackBird blackBird(params, logger, logFileName);
+    blackBird.Initialize();
+    blackBird.Run();
+  }
+  catch (const spdlog::spdlog_ex &ex)
+  {
+    std::cout << "Log init failed: " << ex.what() << std::endl;
+  }
 
   csvFile.close();
-  logFile.close();
 
   return 0;
 }

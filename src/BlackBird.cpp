@@ -25,11 +25,14 @@ bool BlackBird::Initialize()
 {
     if (m_params.isDemoMode)
     {
-        m_log << "Demo mode: trades won't be generated\n"
-                << std::endl;
+        m_log->info("Demo mode: trades won't be generated");
     }
 
-    InitializeMarkets();
+    if (!InitializeMarkets())
+    {
+      m_log->error("Failed to initialize markets");
+      return false;
+    }
 
     InitializeInstruments();
 
@@ -39,23 +42,22 @@ bool BlackBird::Initialize()
     // Inits cURL connections
     m_params.curl = curl_easy_init();
     // Shows the spreads
-    m_log << "[ Targets ]\n"
-            << std::setprecision(2)
-            << "   Spread Entry:  " << m_params.spreadEntry * 100.0 << "%\n"
-            << "   Spread Target: " << m_params.spreadTarget * 100.0 << "%\n";
+    m_log->info("[ Targets ]");
+    m_log->info("   Spread Entry:  {}%", m_params.spreadEntry * 100.0);
+    m_log->info("   Spread Target: {}%", m_params.spreadTarget * 100.0);
 
     // SpreadEntry and SpreadTarget have to be positive,
     // Otherwise we will loose money on every trade.
     if (m_params.spreadEntry <= 0.0)
     {
-        m_log << "   WARNING: Spread Entry should be positive" << std::endl;
+        m_log->warn("   Spread Entry should be positive");
     }
     if (m_params.spreadTarget <= 0.0)
     {
-        m_log << "   WARNING: Spread Target should be positive" << std::endl;
+        m_log->warn("   Spread Target should be positive");
     }
-    m_log << std::endl;
-    m_log << "[ Current balances ]" << std::endl;
+    m_log->info("---");
+    m_log->info("[ Current balances ]");
     // Gets the the balances from every exchange
     // This is only done when not in Demo mode.
     // TODO
@@ -72,6 +74,7 @@ bool BlackBird::Initialize()
     //                        return tmp;
     //                    });
 
+/*
     // Checks for a restore.txt file, to see if
     // the program exited with an open position.
     Result res;
@@ -118,11 +121,12 @@ bool BlackBird::Initialize()
         }
     }
     m_log << std::endl;
+    */
 
     return true;
 }
 
-void BlackBird::InitializeMarkets()
+bool BlackBird::InitializeMarkets()
 {
     // Adds the exchange functions to the arrays for all the defined exchanges
     int index = 0;
@@ -149,10 +153,10 @@ void BlackBird::InitializeMarkets()
     // We need at least two exchanges to run Blackbird
     if (index < 2)
     {
-        std::cout << "ERROR: Blackbird needs at least two Bitcoin exchanges. Please edit the config.json file to add new exchanges\n"
-                  << std::endl;
-        exit(EXIT_FAILURE);
+        m_log->error("Blackbird needs at least two Bitcoin exchanges. Please edit the config.json file to add new exchanges");
+        return false;
     }
+    return true;
 }
 
 void BlackBird::InitializeInstruments()
@@ -160,17 +164,18 @@ void BlackBird::InitializeInstruments()
     for (auto& p : m_markets)
     {
         auto& market = p.second;
-        m_log << "Start to retrieve dico for " << p.first << std::endl;
+        m_log->info("Start to retrieve dico for {}", p.first);
         market->RetrieveInstruments();
         FilterCommonSymbols(market->GetDico());
     }
 
-    m_log << "Common symbol size : " << m_commonSymbols.size() << std::endl;
+    m_log->info("Common symbol size : {}", m_commonSymbols.size());
+    std::stringstream ss;
     for (const auto& symbol : m_commonSymbols)
     {
-      m_log << symbol << ",";
+      ss << symbol << ",";
     }
-    m_log << std::endl;
+    m_log->info(ss.str());
 }
 
 void BlackBird::FilterCommonSymbols(const Dico& dico)
@@ -219,7 +224,7 @@ void BlackBird::Run()
     }
     if (!m_params.verbose)
     {
-        m_log << "Running..." << std::endl;
+        m_log->info("Running...");
     }
 
     LiveSource liveSource(m_params, m_markets, m_log);
@@ -270,15 +275,19 @@ void BlackBird::Run()
               const double profit2 = bid2 - ask1 - ask1 * instr1->GetFees() - bid2 * instr2->GetFees();
               if (profit1 > 0)
               {
-                m_log << std::asctime(std::localtime(&now));
-                m_log << "Found opportunity for " << symbol << " : " << marketName1 << " : " << std::setprecision(8) << bid1 << "/"
-                  << marketName2 << " : " << ask2 << " profit " << profit1 << " " << profit1/bid1 * 10000 << " bps" << std::endl;
+                //m_log << std::asctime(std::localtime(&now));
+                std::stringstream ss;
+                ss << "Found opportunity for " << symbol << " : " << marketName1 << " : " << std::setprecision(8) << bid1 << "/"
+                  << marketName2 << " : " << ask2 << " profit " << profit1 << " " << profit1/bid1 * 10000 << " bps";
+                m_log->info(ss.str());
               }
               else if (profit2 > 0)
               {
-                m_log << std::asctime(std::localtime(&now));
-                m_log << "Found opportunity for " << symbol << " : " << marketName2 << " : " << std::setprecision(8) << bid2 << "/"
-                  << marketName1 << " : " << ask1 << " profit " << profit2 << " " << profit2/bid2 * 10000 << " bps" << std::endl;
+                //m_log << std::asctime(std::localtime(&now));
+                std::stringstream ss;
+                ss << "Found opportunity for " << symbol << " : " << marketName2 << " : " << std::setprecision(8) << bid2 << "/"
+                  << marketName1 << " : " << ask1 << " profit " << profit2 << " " << profit2/bid2 * 10000 << " bps";
+                m_log->info(ss.str());
               }
 
               ++it2;

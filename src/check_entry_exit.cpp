@@ -32,6 +32,7 @@ std::string percToStr(double perc) {
 
 bool checkEntry(Instrument* btcLong, Instrument* btcShort, Result& res, Parameters& params) {
 
+/*
   if (!btcShort->GetHasShort()) return false;
 
   // Gets the prices and computes the spread
@@ -129,10 +130,12 @@ bool checkEntry(Instrument* btcLong, Instrument* btcShort, Result& res, Paramete
   res.priceShortIn = priceShort;
   res.exitTarget = res.spreadIn - params.spreadTarget - 2.0*(res.feesLong + res.feesShort);
   res.trailingWaitCount[longId][shortId] = 0;
+  */
   return true;
 }
 
 bool checkExit(Instrument* btcLong, Instrument* btcShort, Result& res, Parameters& params, time_t period) {
+  /*
   double priceLong  = btcLong->SafeGetBid();
   double priceShort = btcShort->SafeGetAsk();
   if (priceLong > 0.0 && priceShort > 0.0) {
@@ -199,5 +202,6 @@ bool checkExit(Instrument* btcLong, Instrument* btcShort, Result& res, Parameter
   res.priceLongOut  = priceLong;
   res.priceShortOut = priceShort;
   res.trailingWaitCount[longId][shortId] = 0;
+  */
   return true;
 }

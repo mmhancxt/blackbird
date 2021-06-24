@@ -5,12 +5,13 @@
 #include "quote_t.h"
 #include "Instrument.h"
 #include "Dico.h"
+#include "spdlog/spdlog.h"
 
 class Market
 {
 public:
     Market(const std::string& name, int id, double fees, bool canShort, const Parameters& params)
-        : m_name(name), m_id(id), m_fees(fees), m_canShort(canShort), m_params(params), m_log(*params.logFile)
+        : m_name(name), m_id(id), m_fees(fees), m_canShort(canShort), m_params(params), m_log(params.logger)
     {
     }
 
@@ -46,7 +47,7 @@ protected:
     std::string m_name;
     int m_id { 0 };
     const Parameters& m_params;
-    std::ofstream& m_log;
+    std::shared_ptr<spdlog::logger> m_log;
     bool m_canShort { true };
     double m_fees { 0 };
     bool m_requestMultiSymbols { false };

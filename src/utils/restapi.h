@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include "spdlog/spdlog.h"
 
 struct json_t;
 class RestApi
@@ -20,13 +21,14 @@ class RestApi
 
   unique_curl C;
   const string host;
-  std::ostream &log;
+  std::shared_ptr<spdlog::logger> log;
+
 
 public:
   using unique_slist = std::unique_ptr<curl_slist, CURL_deleter>;
 
-  RestApi              (string host, const char *cacert = nullptr,
-                        std::ostream &log = std::cerr);
+  RestApi              (string host, const char *cacert,
+                        std::shared_ptr<spdlog::logger> logger);
   RestApi              (const RestApi &) = delete;
   RestApi& operator =  (const RestApi &) = delete;
 

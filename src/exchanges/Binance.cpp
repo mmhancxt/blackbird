@@ -23,7 +23,7 @@ static std::string getSignature(const Parameters &params, std::string payload);
 static RestApi &queryHandle(const Parameters &params)
 {
     static RestApi query("https://api.binance.com",
-                         params.cacert.c_str(), *params.logFile);
+                         params.cacert.c_str(), params.logger);
     return query;
 }
 
@@ -51,7 +51,7 @@ bool Binance::RetrieveInstruments()
         const std::string status = json_string_value(json_object_get(symbolInfo, "status"));
         if (status != "TRADING")
         {
-            m_log << "Binace: " << symbol << " trading phase is not TRADING[" << status << "], skip" << std::endl;
+            m_log->info("Binace: {} trading phase is not TRADING[{}], skip", symbol, status);
             continue;
         }
 
@@ -74,7 +74,7 @@ bool Binance::RetrieveInstruments()
         Instrument *instrument = new Instrument(m_id, m_name, symbol, wsName, baseCcy, quoteCcy, m_fees, m_canShort);
         m_dico.AddInstrument(symbol, instrument);
     }
-    m_log << "Binance dico complete" << std::endl;
+    m_log->info("Binance dico complete");
     return true;
 }
 
@@ -122,7 +122,7 @@ double Binance::GetAvail(std::string currency)
             }
             else
             {
-                *m_params.logFile << "<binance> Error with currency string" << std::endl;
+                m_log->info("<binance> Error with currency string");
                 available = 0.0;
             }
         }
@@ -134,12 +134,13 @@ std::string Binance::SendLongOrder(std::string direction, double quantity, doubl
 {
     if (direction.compare("buy") != 0 && direction.compare("sell") != 0)
     {
-        *m_params.logFile << "<Binance> Error: Neither \"buy\" nor \"sell\" selected" << std::endl;
+        m_log->info("<Binance> Error: Neither \"buy\" nor \"sell\" selected");
         return "0";
     }
-    *m_params.logFile << "<Binance> Trying to send a \"" << direction << "\" limit order: "
-                    << std::setprecision(8) << quantity << " @ $"
-                    << std::setprecision(8) << price << "...\n";
+
+    // *m_params.logFile << "<Binance> Trying to send a \"" << direction << "\" limit order: "
+    //                 << std::setprecision(8) << quantity << " @ $"
+    //                 << std::setprecision(8) << price << "...\n";
     std::string symbol = "BTCUSDT";
     std::transform(direction.begin(), direction.end(), direction.begin(), toupper);
     std::string type = "LIMIT";
@@ -150,8 +151,8 @@ std::string Binance::SendLongOrder(std::string direction, double quantity, doubl
     unique_json root{authRequest(m_params, "POST", "/api/v3/order", options)};
     long txid = json_integer_value(json_object_get(root.get(), "orderId"));
     std::string order = std::to_string(txid);
-    *m_params.logFile << "<Binance> Done (transaction ID: " << order << ")\n"
-                    << std::endl;
+    // *m_params.logFile << "<Binance> Done (transaction ID: " << order << ")\n"
+    //                 << std::endl;
     return order;
 }
 
@@ -175,7 +176,7 @@ bool Binance::IsOrderComplete(std::string orderId)
         if (tmpId.compare(orderId.c_str()) == 0)
         {
             idstr = json_string_value(json_object_get(json_array_get(root.get(), i), "status"));
-            *m_params.logFile << "<Binance> Order still open (Status:" << idstr << ")" << std::endl;
+            // *m_params.logFile << "<Binance> Order still open (Status:" << idstr << ")" << std::endl;
             complete = false;
         }
     }
@@ -193,8 +194,8 @@ double Binance::GetLimitPrice(double volume, bool isBid)
     //TODO build a real URI string here
     unique_json root{exchange.getRequest("/api/v1/depth?symbol=BTCUSDT")};
     auto bidask = json_object_get(root.get(), isBid ? "bids" : "asks");
-    *m_params.logFile << "<Binance Looking for a limit price to fill "
-                    << std::setprecision(8) << std::fabs(volume) << " Legx...\n";
+    // *m_params.logFile << "<Binance Looking for a limit price to fill "
+    //                 << std::setprecision(8) << std::fabs(volume) << " Legx...\n";
     double tmpVol = 0.0;
     double p = 0.0;
     double v;
@@ -203,9 +204,9 @@ double Binance::GetLimitPrice(double volume, bool isBid)
     {
         p = atof(json_string_value(json_array_get(json_array_get(bidask, i), 0)));
         v = atof(json_string_value(json_array_get(json_array_get(bidask, i), 1)));
-        *m_params.logFile << "<Binance> order book: "
-                        << std::setprecision(8) << v << "@$"
-                        << std::setprecision(8) << p << std::endl;
+        // *m_params.logFile << "<Binance> order book: "
+        //                 << std::setprecision(8) << v << "@$"
+        //                 << std::setprecision(8) << p << std::endl;
         tmpVol += v;
         i++;
     }
@@ -266,7 +267,7 @@ void Binance::testBinance()
 {
 
     Parameters params("blackbird.conf");
-    params.logFile = new std::ofstream("./test.log", std::ofstream::trunc);
+    // params.logFile = new std::ofstream("./test.log", std::ofstream::trunc);
 
     std::string orderId;
 
