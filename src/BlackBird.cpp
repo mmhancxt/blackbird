@@ -236,22 +236,57 @@ void BlackBird::Run()
     // Main analysis loop
     while (true)
     {
-        /*
-    currTime = mktime(&timeinfo);
-    time(&rawtime);
-    diffTime = difftime(rawtime, currTime);
-    // Checks if we are already too late in the current iteration
-    // If that's the case we wait until the next iteration
-    // and we show a warning in the log file.
-    if (diffTime > 0) {
-      m_log << "WARNING: " << diffTime << " second(s) too late at " << printDateTime(currTime) << std::endl;
-      timeinfo.tm_sec += (ceil(diffTime / m_params.interval) + 1) * m_params.interval;
-      currTime = mktime(&timeinfo);
-      sleep_for(secs(m_params.interval - (diffTime % m_params.interval)));
-      m_log << std::endl;
-    } else if (diffTime < 0) {
-      sleep_for(secs(-diffTime));
-    }
+      for (const auto& symbol : m_commonSymbols)
+      {
+        for (auto it = m_markets.begin(); it != m_markets.end(); ++it)
+        {
+          const auto& marketName1 = it->first;
+          const auto* market1 = it->second.get();
+          const auto& dico1 = market1->GetDico();
+          auto* instr1 = dico1.GetInstrumentBySymbol(symbol);
+          assert(instr1 != nullptr);
+          if (instr1->HasMarketUpdate())
+          {
+            auto quote1 = instr1->SafeGetBidAsk();
+            const double bid1 = quote1.first;
+            const double ask1 = quote1.second;
+
+            auto it2 = it;
+            ++it2;
+            while (it2 != m_markets.end())
+            {
+              const auto& marketName2 = it2->first;
+              const auto* market2 = it2->second.get();
+              const auto& dico2 = market2->GetDico();
+              auto* instr2 = dico2.GetInstrumentBySymbol(symbol);
+              assert(instr2 != nullptr);
+              auto quote2 = instr2->SafeGetBidAskReadOnly();
+              const double bid2 = quote2.first;
+              const double ask2 = quote2.second;
+
+              time_t now = std::time(nullptr);
+
+              const double profit1 = bid1 - ask2 - bid1 * instr1->GetFees() - ask2 * instr2->GetFees();
+              const double profit2 = bid2 - ask1 - ask1 * instr1->GetFees() - bid2 * instr2->GetFees();
+              if (profit1 > 0)
+              {
+                m_log << std::asctime(std::localtime(&now));
+                m_log << "Found opportunity for " << symbol << " : " << marketName1 << " : " << std::setprecision(8) << bid1 << "/"
+                  << marketName2 << " : " << ask2 << " profit " << profit1 << " " << profit1/bid1 * 10000 << " bps" << std::endl;
+              }
+              else if (profit2 > 0)
+              {
+                m_log << std::asctime(std::localtime(&now));
+                m_log << "Found opportunity for " << symbol << " : " << marketName2 << " : " << std::setprecision(8) << bid2 << "/"
+                  << marketName1 << " : " << ask1 << " profit " << profit2 << " " << profit2/bid2 * 10000 << " bps" << std::endl;
+              }
+
+              ++it2;
+            }
+          }
+        }
+      }
+      /*
     // Header for every iteration of the loop
     if (m_params.verbose) {
       if (!inMarket) {
@@ -259,52 +294,7 @@ void BlackBird::Run()
       } else {
         m_log << "[ " << printDateTime(currTime) << " IN MARKET: Long " << res.exchNameLong << " / Short " << res.exchNameShort << " ]" << std::endl;
       }
-    }
-    // Gets the bid and ask of all the exchanges
-    for (const auto& currencyPair : m_params.tradedPair)
-    {
-      const auto& ccyPair = currencyPair.ToString();
-      for (int i = 0; i < numExch; ++i) {
-        auto quote = getQuote[i](m_params, ccyPair);
-        double bid = quote.bid();
-        double ask = quote.ask();
-
-        // Saves the bid/ask into the SQLite database
-        addBidAskToDb(dbTableName[i], ccyPair, printDateTimeDb(currTime), bid, ask, m_params);
-
-        // If there is an error with the bid or ask (i.e. value is null),
-        // we show a warning but we don't stop the loop.
-        if (bid == 0.0) {
-          m_log << "   WARNING: " << m_params.exchName[i] << " bid is null" << std::endl;
-        }
-        if (ask == 0.0) {
-          m_log << "   WARNING: " << m_params.exchName[i] << " ask is null" << std::endl;
-        }
-        // Shows the bid/ask information in the log file
-        if (m_params.verbose) {
-          m_log << "   " << m_params.exchName[i] << ": \t"
-                  << ccyPair << ": \t"
-                  << std::setprecision(2)
-                  << bid << " / " << ask << std::endl;
-        }
-        // Updates the Bitcoin vector with the latest bid/ask data
-        auto it = exchangePairs[i].find(ccyPair);
-        if (it != exchangePairs[i].end())
-        {
-          auto& ccyPairs = it->second;
-          ccyPairs->safeUpdateData(quote);
-          curl_easy_reset(m_params.curl);
-        }
-        else
-        {
-          m_log << "   ERROR: can't find ExchangePairs for " << ccyPair << " " << i << std::endl;
-        }
-      }
-    }
-    if (m_params.verbose) {
-      m_log << "   ----------------------------" << std::endl;
-    }
-    */
+    } */
         // Stores all the spreads in arrays to
         // compute the volatility. The volatility
         // is not used for the moment.
@@ -328,7 +318,7 @@ void BlackBird::Run()
         //   }
         // }
         // Looks for arbitrage opportunities on all the exchange combinations
-        /* TODO
+        /*
     if (!inMarket) {
       for (int i = 0; i < numExch; ++i) {
         for (int j = 0; j < numExch; ++j) {

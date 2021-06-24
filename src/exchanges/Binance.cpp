@@ -1,7 +1,7 @@
 #include "Binance.h"
 #include "parameters.h"
-#include "ccapi_cpp/ccapi_session.h"
 #include "utils/restapi.h"
+#include "utils/StringUtil.h"
 #include "unique_json.hpp"
 #include "hex_str.hpp"
 #include "time_fun.h"
@@ -27,40 +27,11 @@ static RestApi &queryHandle(const Parameters &params)
     return query;
 }
 
-namespace ccapi {
-Logger* Logger::logger = nullptr;  // This line is needed.
-class MyEventHandler : public EventHandler {
- public:
-  bool processEvent(const Event& event, Session* session) override {
-    if (event.getType() == Event::Type::SUBSCRIPTION_DATA) {
-      for (const auto& message : event.getMessageList()) {
-        std::cout << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:" << std::endl;
-        for (const auto& element : message.getElementList()) {
-          const std::map<std::string, std::string>& elementNameValueMap = element.getNameValueMap();
-          std::cout << "  " + toString(elementNameValueMap) << std::endl;
-        }
-      }
-    }
-    return true;
-  }
+
+static std::unordered_map<std::string, std::string> s_binanceSpecialNameMap =
+{
+    {"REP", "REPV2"}
 };
-} /* namespace ccapi */
-using ::ccapi::MyEventHandler;
-using ::ccapi::Session;
-using ::ccapi::SessionConfigs;
-using ::ccapi::SessionOptions;
-using ::ccapi::Subscription;
-// int main(int argc, char** argv) {
-//   SessionOptions sessionOptions;
-//   SessionConfigs sessionConfigs;
-//   MyEventHandler eventHandler;
-//   Session session(sessionOptions, sessionConfigs, &eventHandler);
-//   Subscription subscription("coinbase", "BTC-USD", "MARKET_DEPTH");
-//   session.subscribe(subscription);
-//   std::this_thread::sleep_for(std::chrono::seconds(10));
-//   session.stop();
-//   std::cout << "Bye" << std::endl;
-// }
 
 
 bool Binance::RetrieveInstruments()
@@ -75,7 +46,7 @@ bool Binance::RetrieveInstruments()
     json_t *symbolInfo = nullptr;
     json_array_foreach(resultArray, index, symbolInfo)
     {
-        const std::string symbol = json_string_value(json_object_get(symbolInfo, "symbol"));
+        std::string symbol = json_string_value(json_object_get(symbolInfo, "symbol"));
         // m_log << "DEBUG : binance symbol is " << symbol << std::endl;
         const std::string status = json_string_value(json_object_get(symbolInfo, "status"));
         if (status != "TRADING")
@@ -86,6 +57,18 @@ bool Binance::RetrieveInstruments()
 
         const std::string baseCcy = json_string_value(json_object_get(symbolInfo, "baseAsset"));
         const std::string quoteCcy = json_string_value(json_object_get(symbolInfo, "quoteAsset"));
+
+        auto it = s_binanceSpecialNameMap.find(baseCcy);
+        if (it != s_binanceSpecialNameMap.end())
+        {
+           utils::Replace(symbol, baseCcy, it->second);
+        }
+        it = s_binanceSpecialNameMap.find(quoteCcy);
+        if (it != s_binanceSpecialNameMap.end())
+        {
+            utils::Replace(symbol, quoteCcy, it->second);
+        }
+
         auto wsName(symbol);
         boost::to_lower(wsName);
         Instrument *instrument = new Instrument(m_id, m_name, symbol, wsName, baseCcy, quoteCcy, m_fees, m_canShort);

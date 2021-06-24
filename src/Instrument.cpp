@@ -17,6 +17,12 @@ std::pair<double, double> Instrument::SafeGetBidAsk()
     return {m_bid, m_ask};
 }
 
+std::pair<double, double> Instrument::SafeGetBidAskReadOnly()
+{
+    std::lock_guard<std::mutex> lock(m_feedMutex);
+    return {m_bid, m_ask};
+}
+
 double Instrument::SafeGetBid()  const
 {
     std::lock_guard<std::mutex> lock(m_feedMutex);

@@ -26,6 +26,7 @@ public:
     void SafeUpdateData(quote_t quote);
     unsigned GetId() const;
     std::pair<double, double> SafeGetBidAsk();
+    std::pair<double, double> SafeGetBidAskReadOnly();
     double SafeGetAsk() const;
     double SafeGetBid() const;
     double SafeGetMidPrice() const;

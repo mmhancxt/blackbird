@@ -23,6 +23,7 @@ public:
     void SetRequestMultiSymbols(bool val) { m_requestMultiSymbols = val; }
     bool SupportReuesetMultiSymbols() const { return m_requestMultiSymbols; }
 
+    const Dico& GetDico() const { return m_dico; }
     Dico& GetDico() { return m_dico; }
 
     virtual bool RetrieveInstruments() = 0;
