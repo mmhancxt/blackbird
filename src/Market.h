@@ -2,7 +2,6 @@
 
 #include <string>
 #include "parameters.h"
-#include "quote_t.h"
 #include "Instrument.h"
 #include "Dico.h"
 #include "spdlog/spdlog.h"
@@ -29,12 +28,12 @@ public:
 
     virtual bool RetrieveInstruments() = 0;
 
-    virtual quote_t GetQuote (const std::string& currencyPair) = 0;
-    virtual bool GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,
-        std::unordered_map<std::string, quote_t>& quotes)
-    {
-        return false;
-    }
+    // virtual quote_t GetQuote (const std::string& currencyPair) = 0;
+    // virtual bool GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,
+    //     std::unordered_map<std::string, quote_t>& quotes)
+    // {
+    //     return false;
+    // }
     virtual double GetAvail(std::string currency) = 0;
     virtual std::string SendLongOrder(std::string direction, double quantity, double price) = 0;
     virtual std::string SendShortOrder(std::string direction, double quantity, double price) = 0;

@@ -71,6 +71,7 @@ bool Kraken::RetrieveInstruments()
   return true;
 }
 
+/*
 quote_t Kraken::GetQuote(const std::string &currencyPair)
 {
   if (krakenGotTicker)
@@ -156,7 +157,7 @@ bool Kraken::GetQuotesForMultiSymbols(const std::vector<std::string> &ccyPairs,
   }
 
   return true;
-}
+}*/
 
 double Kraken::GetAvail(std::string currency)
 {

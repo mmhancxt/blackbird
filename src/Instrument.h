@@ -1,6 +1,6 @@
 #pragma once
 
-#include "quote_t.h"
+#include "Limit.h"
 #include <string>
 #include <mutex>
 
@@ -23,10 +23,10 @@ public:
     {
     }
 
-    void SafeUpdateData(quote_t quote);
+    void SafeUpdateData(const Limit& limit);
     unsigned GetId() const;
-    std::pair<double, double> SafeGetBidAsk();
-    std::pair<double, double> SafeGetBidAskReadOnly();
+    Limit SafeGetBestLimit();
+    Limit SafeGetBestLimitReadOnly();
     double SafeGetAsk() const;
     double SafeGetBid() const;
     double SafeGetMidPrice() const;
@@ -61,8 +61,7 @@ private:
     double m_fees {0};
     bool m_hasShort {true};
     bool m_hasUpdate {false};
-    double m_bid {0};
-    double m_ask {0};
+    Limit m_limit;
     std::string m_quoteCurrency;
     std::string m_baseCurrency;
     mutable std::mutex m_feedMutex;

@@ -7,6 +7,7 @@
 #include "time_fun.h"
 #include "db_fun.h"
 #include "parameters.h"
+#include "Limit.h"
 #include "ccapi_cpp/ccapi_session.h"
 
 LiveSource::LiveSource(const Parameters &params, const std::unordered_map<std::string, std::unique_ptr<Market>> &markets,
@@ -125,8 +126,8 @@ bool LiveSource::processEvent(const ccapi::Event& event, ccapi::Session* session
                         askSize = stod(element.getValue("ASK_SIZE"));
                     }
                 }
-                quote_t quote(bidPrice, askPrice);
-                ProcessQuote(symbol, quote, marketName, dico, std::chrono::system_clock::to_time_t(std::chrono::time_point_cast<std::chrono::microseconds>(message.getTime())));
+                Limit limit(bidPrice, bidSize, askPrice, askSize);
+                ProcessLimit(symbol, limit, marketName, dico, std::chrono::system_clock::to_time_t(std::chrono::time_point_cast<std::chrono::microseconds>(message.getTime())));
             }
             else
             {
@@ -232,23 +233,27 @@ void LiveSource::GetMarketData()
     }*/
 }
 
-void LiveSource::ProcessQuote(const std::string& ccyPair, const quote_t& quote,
+void LiveSource::ProcessLimit(const std::string& ccyPair, const Limit& limit,
     const std::string& marketName, const Dico& dico, time_t currTime)
 {
-    double bid = quote.bid();
-    double ask = quote.ask();
+    const auto& bid = limit.Bid;
+    const auto& ask = limit.Ask;
+    const auto bidPrice = bid.Price;
+    const auto bidQty = bid.Quantity;
+    const auto askPrice = ask.Price;
+    const auto askQty = ask.Quantity;
 
     // Saves the bid/ask into the SQLite database
     addBidAskToDb(marketName, ccyPair,
-                  printDateTimeDb(currTime), bid, ask, m_params, m_dbConn);
+                  printDateTimeDb(currTime), bidPrice, bidQty, askPrice, askQty, m_params, m_dbConn);
 
     // If there is an error with the bid or ask (i.e. value is null),
     // we show a warning but we don't stop the loop.
-    if (bid == 0.0)
+    if (bidPrice == 0.0)
     {
         m_log->warn("{} bid is null", marketName);
     }
-    if (ask == 0.0)
+    if (askPrice == 0.0)
     {
         m_log->warn("{} ask is null", marketName);
     }
@@ -259,14 +264,14 @@ void LiveSource::ProcessQuote(const std::string& ccyPair, const quote_t& quote,
         ss << "   " << marketName << ": \t"
                   << ccyPair << ": \t"
                   << std::setprecision(8)
-                  << bid << " / " << ask << std::endl;
+                  << bidPrice << " / " << askPrice << std::endl;
         m_log->info(ss.str());
     }
     // Updates the Instrument vector with the latest bid/ask data
     auto* instr = dico.GetInstrumentBySymbol(ccyPair);
     if (instr != nullptr)
     {
-        instr->SafeUpdateData(quote);
+        instr->SafeUpdateData(limit);
         curl_easy_reset(m_params.curl);
     }
     else

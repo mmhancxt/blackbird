@@ -78,6 +78,7 @@ bool Binance::RetrieveInstruments()
     return true;
 }
 
+/*
 quote_t Binance::GetQuote(const std::string& currencyPair)
 {
     auto &exchange = queryHandle(m_params);
@@ -90,7 +91,7 @@ quote_t Binance::GetQuote(const std::string& currencyPair)
     auto askValue = quote ? quote : 0.0;
 
     return std::make_pair(bidValue, askValue);
-}
+}*/
 
 double Binance::GetAvail(std::string currency)
 {

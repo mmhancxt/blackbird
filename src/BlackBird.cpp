@@ -252,9 +252,14 @@ void BlackBird::Run()
           assert(instr1 != nullptr);
           if (instr1->HasMarketUpdate())
           {
-            auto quote1 = instr1->SafeGetBidAsk();
-            const double bid1 = quote1.first;
-            const double ask1 = quote1.second;
+            const auto limit1 = instr1->SafeGetBestLimit();
+            const auto& bid1 = limit1.Bid;
+            const auto& ask1 = limit1.Ask;
+
+            const double bid1Price = bid1.Price;
+            const double bid1Qty = bid1.Quantity;
+            const double ask1Price = ask1.Price;
+            const double ask1Qty = ask1.Quantity;
 
             auto it2 = it;
             ++it2;
@@ -265,28 +270,34 @@ void BlackBird::Run()
               const auto& dico2 = market2->GetDico();
               auto* instr2 = dico2.GetInstrumentBySymbol(symbol);
               assert(instr2 != nullptr);
-              auto quote2 = instr2->SafeGetBidAskReadOnly();
-              const double bid2 = quote2.first;
-              const double ask2 = quote2.second;
+              const auto limit2 = instr2->SafeGetBestLimitReadOnly();
+
+              const auto& bid2 = limit2.Bid;
+              const auto& ask2 = limit2.Ask;
+
+              const double bid2Price = bid2.Price;
+              const double bid2Qty = bid2.Quantity;
+              const double ask2Price = ask2.Price;
+              const double ask2Qty = ask2.Quantity;
 
               time_t now = std::time(nullptr);
 
-              const double profit1 = bid1 - ask2 - bid1 * instr1->GetFees() - ask2 * instr2->GetFees();
-              const double profit2 = bid2 - ask1 - ask1 * instr1->GetFees() - bid2 * instr2->GetFees();
+              const double profit1 = bid1Price - ask2Price - bid1Price * instr1->GetFees() - ask2Price * instr2->GetFees();
+              const double profit2 = bid2Price - ask1Price - ask1Price * instr1->GetFees() - bid2Price * instr2->GetFees();
               if (profit1 > 0)
               {
                 //m_log << std::asctime(std::localtime(&now));
                 std::stringstream ss;
-                ss << "Found opportunity for " << symbol << " : " << marketName1 << " : " << std::setprecision(8) << bid1 << "/"
-                  << marketName2 << " : " << ask2 << " profit " << profit1 << " " << profit1/bid1 * 10000 << " bps";
+                ss << "Found opportunity for " << symbol << " : " << marketName1 << " : " << std::setprecision(8) << bid1Price << "/"
+                  << marketName2 << " : " << ask2Price << " profit " << profit1 << " " << profit1/bid1Price * 10000 << " bps";
                 m_log->info(ss.str());
               }
               else if (profit2 > 0)
               {
                 //m_log << std::asctime(std::localtime(&now));
                 std::stringstream ss;
-                ss << "Found opportunity for " << symbol << " : " << marketName2 << " : " << std::setprecision(8) << bid2 << "/"
-                  << marketName1 << " : " << ask1 << " profit " << profit2 << " " << profit2/bid2 * 10000 << " bps";
+                ss << "Found opportunity for " << symbol << " : " << marketName2 << " : " << std::setprecision(8) << bid2Price << "/"
+                  << marketName1 << " : " << ask1Price << " profit " << profit2 << " " << profit2/bid2Price * 10000 << " bps";
                 m_log->info(ss.str());
               }
 
