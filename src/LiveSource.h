@@ -2,6 +2,7 @@
 #include "parameters.h"
 #include "unique_sqlite.hpp"
 #include "ccapi_cpp/ccapi_session.h"
+#include "spdlog/spdlog.h"
 
 #pragma once
 
@@ -11,7 +12,7 @@ class LiveSource : public ccapi::EventHandler
 {
 public:
     LiveSource(const Parameters& params, const std::unordered_map<std::string, std::unique_ptr<Market>>& markets,
-        std::ofstream& log);
+        std::shared_ptr<spdlog::logger> log);
 
     ~LiveSource();
 
@@ -28,7 +29,7 @@ private:
 private:
     const Parameters& m_params;
     const std::unordered_map<std::string, std::unique_ptr<Market>>& m_markets;
-    std::ofstream& m_log;
+    std::shared_ptr<spdlog::logger> m_log;
     unique_sqlite m_dbConn;
     std::unique_ptr<ccapi::Session> m_session;
 };

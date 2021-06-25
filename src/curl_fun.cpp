@@ -14,7 +14,7 @@ size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp) {
 
 json_t* getJsonFromUrl(Parameters& params, std::string url, std::string postFields,
                        bool getRequest) {
-                         
+
   if (!params.cacert.empty())
     curl_easy_setopt(params.curl, CURLOPT_CAINFO, params.cacert.c_str());
 
@@ -43,9 +43,11 @@ retry_state:
 curl_state:
   CURLcode resCurl = curl_easy_perform(params.curl);
   if (resCurl != CURLE_OK) {
-    *params.logFile << "Error with cURL: " << curl_easy_strerror(resCurl) << '\n'
+    std::stringstream ss;
+    ss << "Error with cURL: " << curl_easy_strerror(resCurl) << '\n'
                     << "  URL: " << url << '\n'
                     << "  Retry in 2 sec..." << std::endl;
+    params.logger->info(ss.str());
 
     goto retry_state;
   }
@@ -55,9 +57,11 @@ curl_state:
   json_error_t error;
   json_t *root = json_loads(readBuffer.c_str(), 0, &error);
   if (!root) {
-    *params.logFile << "Error with JSON:\n" << error.text << '\n'
+    std::stringstream ss;
+    ss << "Error with JSON:\n" << error.text << '\n'
                     << "Buffer:\n" << readBuffer << '\n'
                     << "Retrying..." << std::endl;
+    params.logger->info(ss.str());
 
     goto retry_state;
   }

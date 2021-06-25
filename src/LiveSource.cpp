@@ -10,8 +10,8 @@
 #include "ccapi_cpp/ccapi_session.h"
 
 LiveSource::LiveSource(const Parameters &params, const std::unordered_map<std::string, std::unique_ptr<Market>> &markets,
-               std::ofstream &log)
-    : m_params(params), m_markets(markets), m_log(log)
+               std::shared_ptr<spdlog::logger> logger)
+    : m_params(params), m_markets(markets), m_log(logger)
 {
     // Connects to the SQLite3 database.
     // This database is used to collect bid and ask information
@@ -19,9 +19,7 @@ LiveSource::LiveSource(const Parameters &params, const std::unordered_map<std::s
     // would be useful to collect historical bid/ask data.
     if (createDbConnection(m_params, m_dbConn) != 0)
     {
-        m_log << "ERROR: cannot connect to the database \'" << m_params.dbFile
-                  << "\'\n"
-                  << std::endl;
+        m_log->error("cannot connect to the database {}", m_params.dbFile);
         //exit(EXIT_FAILURE);
     }
 
@@ -41,7 +39,7 @@ void LiveSource::Subscribe(const std::set<std::string>& symbols)
 {
     using namespace ccapi;
 
-    m_log << "Start to subscrib market data" << std::endl;
+    m_log->info("Start to subscrib market data");
     std::map<std::string, std::map<std::string, std::string>> exchangeInstrumentSymbolMap;
     std::vector<Subscription> subscriptionList;
     for (const auto &p: m_markets)
@@ -54,7 +52,7 @@ void LiveSource::Subscribe(const std::set<std::string>& symbols)
             const auto& instr = dico.GetInstrumentBySymbol(symbol);
             if (instr == nullptr)
             {
-                m_log << "Error : failed to find " << symbol << " in dico of " << marketName << std::endl;
+                m_log->error("failed to find {} in dico of {}", symbol,  marketName);
                 continue;
             }
             const std::string subscriptionID = marketName + "|" + symbol;
@@ -93,14 +91,14 @@ bool LiveSource::processEvent(const ccapi::Event& event, ccapi::Session* session
                 }
                 else
                 {
-                    m_log << "Market name not found " << marketName << std::endl;
+                    m_log->error("Market name not found {}", marketName);
                     continue;
                 }
                 const auto& dico = market->GetDico();
                 Instrument* instr = dico.GetInstrumentBySymbol(symbol);
                 if (instr == nullptr)
                 {
-                    m_log << "can't find instrument " << symbol << std::endl;
+                    m_log->error("can't find instrument {}", symbol);
                     continue;
                 }
                 //m_log << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:" << std::endl;
@@ -132,7 +130,7 @@ bool LiveSource::processEvent(const ccapi::Event& event, ccapi::Session* session
             }
             else
             {
-                m_log << "Error: invalid correlationId " << correlationId << std::endl;
+                m_log->error("invalid correlationId {}", correlationId);
             }
         }
     }
@@ -142,6 +140,7 @@ bool LiveSource::processEvent(const ccapi::Event& event, ccapi::Session* session
 
 void LiveSource::GetMarketData()
 {
+    /*
     time_t rawtime = time(nullptr);
     tm timeinfo = *localtime(&rawtime);
     using std::this_thread::sleep_for;
@@ -230,7 +229,7 @@ void LiveSource::GetMarketData()
         {
             m_log << "   ----------------------------" << std::endl;
         }
-    }
+    }*/
 }
 
 void LiveSource::ProcessQuote(const std::string& ccyPair, const quote_t& quote,
@@ -247,19 +246,21 @@ void LiveSource::ProcessQuote(const std::string& ccyPair, const quote_t& quote,
     // we show a warning but we don't stop the loop.
     if (bid == 0.0)
     {
-        m_log << "   WARNING: " << marketName << " bid is null" << std::endl;
+        m_log->warn("{} bid is null", marketName);
     }
     if (ask == 0.0)
     {
-        m_log << "   WARNING: " << marketName << " ask is null" << std::endl;
+        m_log->warn("{} ask is null", marketName);
     }
     // Shows the bid/ask information in the log file
     if (m_params.verbose)
     {
-        m_log << "   " << marketName << ": \t"
+        std::stringstream ss;
+        ss << "   " << marketName << ": \t"
                   << ccyPair << ": \t"
                   << std::setprecision(8)
                   << bid << " / " << ask << std::endl;
+        m_log->info(ss.str());
     }
     // Updates the Instrument vector with the latest bid/ask data
     auto* instr = dico.GetInstrumentBySymbol(ccyPair);
@@ -270,6 +271,6 @@ void LiveSource::ProcessQuote(const std::string& ccyPair, const quote_t& quote,
     }
     else
     {
-        m_log << "   ERROR: can't find ExchangePairs for " << ccyPair << " " << marketName << std::endl;
+        m_log->error("can't find ExchangePairs for {} {}", ccyPair, marketName);
     }
 }
