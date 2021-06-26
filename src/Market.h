@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <set>
 #include "parameters.h"
 #include "Instrument.h"
 #include "Dico.h"
@@ -41,6 +42,13 @@ public:
     virtual double GetActivePos() = 0;
     virtual double GetLimitPrice(double volume, bool isBid) = 0;
 
+    void AddSubscriptionSymbol(const std::string& symbol)
+    {
+        m_subscriptionSymbols.insert(symbol);
+    }
+
+    const std::set<std::string>& GetSubscriptionSymbols() const { return m_subscriptionSymbols; }
+
 protected:
 
     std::string m_name;
@@ -51,4 +59,5 @@ protected:
     double m_fees { 0 };
     bool m_requestMultiSymbols { false };
     Dico m_dico;
+    std::set<std::string> m_subscriptionSymbols;
 };

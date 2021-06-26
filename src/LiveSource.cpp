@@ -36,7 +36,7 @@ LiveSource::~LiveSource()
 }
 
 
-void LiveSource::Subscribe(const std::set<std::string>& symbols)
+void LiveSource::Subscribe()
 {
     using namespace ccapi;
 
@@ -48,7 +48,7 @@ void LiveSource::Subscribe(const std::set<std::string>& symbols)
         const auto& marketName = p.first;
         const auto& market = p.second;
         const auto& dico = market->GetDico();
-        for (const auto &symbol : symbols)
+        for (const auto &symbol : market->GetSubscriptionSymbols())
         {
             const auto& instr = dico.GetInstrumentBySymbol(symbol);
             if (instr == nullptr)
@@ -102,12 +102,12 @@ bool LiveSource::processEvent(const ccapi::Event& event, ccapi::Session* session
                     m_log->error("can't find instrument {}", symbol);
                     continue;
                 }
-                //m_log << std::string("Best bid and ask at ") + UtilTime::getISOTimestamp(message.getTime()) + " are:" << std::endl;
+                //m_log->info("{}: Best bid and ask at {} are:", marketName, UtilTime::getISOTimestamp(message.getTime()));
                 double bidPrice = 0, bidSize = 0, askPrice = 0, askSize = 0;
                 for (const auto &element : message.getElementList())
                 {
                     const std::map<std::string, std::string> &elementNameValueMap = element.getNameValueMap();
-                    //m_log << "  " + toString(elementNameValueMap) << std::endl;
+                    //m_log->info("  {}", toString(elementNameValueMap));
 
                     if (element.has("BID_PRICE"))
                     {

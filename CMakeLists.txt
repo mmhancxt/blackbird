@@ -22,6 +22,7 @@ file(GLOB SOURCES
     src/*.cpp
     src/exchanges/Binance.cpp
     src/exchanges/Kraken.cpp
+    src/exchanges/Coinbase.cpp
     src/utils/*.cpp)
 add_executable(${PROJECT_NAME} ${SOURCES})
 
@@ -35,7 +36,7 @@ endif()
 add_compile_definitions(CCAPI_ENABLE_SERVICE_MARKET_DATA)
 add_compile_definitions(CCAPI_ENABLE_EXCHANGE_BINANCE)
 add_compile_definitions(CCAPI_ENABLE_EXCHANGE_KRAKEN)
-#add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
+add_compile_definitions(CCAPI_ENABLE_EXCHANGE_COINBASE)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
                                       CXX_STANDARD 17

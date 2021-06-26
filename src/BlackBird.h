@@ -37,14 +37,12 @@ private:
 
     void InitializeInstruments();
 
-    void FilterCommonSymbols(const Dico& dico);
-
 private:
     Parameters& m_params;
     std::shared_ptr<spdlog::logger> m_log;
     const std::string& m_logFileName;
     std::unordered_map<std::string, std::unique_ptr<Market>> m_markets;
-    std::set<std::string> m_commonSymbols;
+    std::set<std::string> m_allSubscriptionSymbols;
 
     bool m_inMarket { false };
 };

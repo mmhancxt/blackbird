@@ -17,7 +17,7 @@ public:
 
     ~LiveSource();
 
-    void Subscribe(const std::set<std::string>& symbols);
+    void Subscribe();
     void GetMarketData();
 
     bool processEvent(const ccapi::Event& event, ccapi::Session* session) override;

@@ -2,6 +2,7 @@
 *.csv
 *.o
 *.a
+*.swp
 blackbird
 blackbird.db
 blackbird.conf
