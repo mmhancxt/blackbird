@@ -36,7 +36,7 @@ int createDbConnection(const Parameters& params, unique_sqlite& dbConn) {
 int createTable(std::string exchangeName, const Parameters& params, unique_sqlite& dbConn) {
 
   std::string query = "CREATE TABLE IF NOT EXISTS `" + exchangeName +
-                      "` (CurrencyPair TEXT NOT NULL, Datetime DATETIME NOT NULL, bid DECIMAL(8, 2), ask DECIMAL(8, 2));";
+                      "` (CurrencyPair TEXT NOT NULL, Datetime DATETIME NOT NULL, BidPrice DECIMAL(8, 2), BidQty DECIMAL(8, 2), AskPrice DECIMAL(8, 2), AskQty DECIMAL(8, 2));";
   unique_sqlerr errmsg;
   int res = sqlite3_exec(dbConn.get(), query.c_str(), nullptr, nullptr, acquire(errmsg));
   if (res != SQLITE_OK)
@@ -46,12 +46,15 @@ int createTable(std::string exchangeName, const Parameters& params, unique_sqlit
 }
 
 int addBidAskToDb(const std::string& exchangeName, const std::string& currencyPair,
-  std::string datetime, double bid, double ask, const Parameters& params, unique_sqlite& dbConn)
+  std::string datetime, double bidPrice, double bidQty, double askPrice, double askQty,
+  const Parameters& params, unique_sqlite& dbConn)
 {
   std::string query = "INSERT INTO `" + exchangeName +
                       "` VALUES ('"   + currencyPair + "','" + datetime +
-                      "'," + std::to_string(bid) +
-                      "," + std::to_string(ask) + ");";
+                      "'," + std::to_string(bidPrice) +
+                      "," + std::to_string(bidQty) +
+                      "," + std::to_string(askPrice) +
+                      "," + std::to_string(askQty) + ");";
   unique_sqlerr errmsg;
   int res = sqlite3_exec(dbConn.get(), query.c_str(), nullptr, nullptr, acquire(errmsg));
   if (res != SQLITE_OK)

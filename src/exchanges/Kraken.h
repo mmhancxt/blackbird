@@ -1,5 +1,4 @@
 #pragma once
-#include "quote_t.h"
 #include "Market.h"
 #include <string>
 
@@ -15,10 +14,10 @@ public:
 
     bool RetrieveInstruments() override;
 
-    quote_t GetQuote(const std::string& currencyPair) override;
+    // quote_t GetQuote(const std::string& currencyPair) override;
 
-    bool GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,
-        std::unordered_map<std::string, quote_t>& quotes) override;
+    // bool GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,
+    //     std::unordered_map<std::string, quote_t>& quotes) override;
 
     double GetAvail(std::string currency) override;
 

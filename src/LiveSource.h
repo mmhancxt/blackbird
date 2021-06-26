@@ -7,6 +7,7 @@
 #pragma once
 
 class Dico;
+struct Limit;
 
 class LiveSource : public ccapi::EventHandler
 {
@@ -16,14 +17,13 @@ public:
 
     ~LiveSource();
 
-    void Subscribe(const std::set<std::string>& symbols);
+    void Subscribe();
     void GetMarketData();
 
     bool processEvent(const ccapi::Event& event, ccapi::Session* session) override;
 
-
 private:
-    void ProcessQuote(const std::string& ccyPair, const quote_t& quote,
+    void ProcessLimit(const std::string& ccyPair, const Limit& limit,
         const std::string& marketName, const Dico& dico, time_t currentTime);
 
 private:

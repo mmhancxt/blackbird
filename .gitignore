@@ -2,8 +2,10 @@
 *.csv
 *.o
 *.a
+*.swp
 blackbird
 blackbird.db
+blackbird.conf
 sqlite3
 core
 build

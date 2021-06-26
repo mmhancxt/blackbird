@@ -175,10 +175,16 @@ Parameters::Parameters(std::string fileName) {
   bittrexSecret = getParameter("BittrexSecretKey", configFile);
   bittrexFees = getDouble(getParameter("BittrexFees", configFile));
   bittrexEnable = getBool(getParameter("BittrexEnable", configFile));
+
   binanceApi = getParameter("BinanceApiKey", configFile);
   binanceSecret = getParameter("BinanceSecretKey", configFile);
   binanceFees = getDouble(getParameter("BinanceFees", configFile));
   binanceEnable = getBool(getParameter("BinanceEnable", configFile));
+
+  coinbaseApi = getParameter("CoinbaseApiKey", configFile);
+  coinbaseSecret = getParameter("CoinbaseSecretKey", configFile);
+  coinbaseFees = getDouble(getParameter("CoinbaseFees", configFile));
+  coinbaseEnable = getBool(getParameter("CoinbaseEnable", configFile));
 
   sendEmail = getBool(getParameter("SendEmail", configFile));
   senderAddress = getParameter("SenderAddress", configFile);

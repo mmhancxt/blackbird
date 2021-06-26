@@ -1,6 +1,6 @@
 #pragma once
 
-#include "quote_t.h"
+#include "Limit.h"
 #include <string>
 #include <mutex>
 
@@ -23,10 +23,10 @@ public:
     {
     }
 
-    void SafeUpdateData(quote_t quote);
+    void SafeUpdateData(const Limit& limit);
     unsigned GetId() const;
-    std::pair<double, double> SafeGetBidAsk();
-    std::pair<double, double> SafeGetBidAskReadOnly();
+    Limit SafeGetBestLimit();
+    Limit SafeGetBestLimitReadOnly();
     double SafeGetAsk() const;
     double SafeGetBid() const;
     double SafeGetMidPrice() const;
@@ -47,6 +47,9 @@ public:
     const std::string& GetQuoteCurrency() const { return m_quoteCurrency; }
     const std::string& GetBaseCurrency() const { return m_baseCurrency; }
 
+    void SetShouldSubscribe() { m_shouldSubscribe = true; }
+    bool ShouldSubscribe() const { return m_shouldSubscribe; }
+
     friend std::ostream& operator<<(std::ostream& os, const Instrument& pair)
     {
         os << "[" << pair.GetQuoteCurrency() << "/" << pair.GetBaseCurrency() << "]";
@@ -58,12 +61,12 @@ private:
     std::string m_exchName;
     std::string m_symbol;
     std::string m_wsName;
+    std::string m_baseCurrency;
+    std::string m_quoteCurrency;
     double m_fees {0};
     bool m_hasShort {true};
     bool m_hasUpdate {false};
-    double m_bid {0};
-    double m_ask {0};
-    std::string m_quoteCurrency;
-    std::string m_baseCurrency;
+    bool m_shouldSubscribe { false };
+    Limit m_limit;
     mutable std::mutex m_feedMutex;
 };

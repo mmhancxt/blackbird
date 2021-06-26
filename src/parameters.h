@@ -103,10 +103,16 @@ struct Parameters {
   std::string bittrexSecret;
   double bittrexFees;
   bool bittrexEnable;
+
   std::string binanceApi;
   std::string binanceSecret;
   double binanceFees;
   bool binanceEnable;
+
+  std::string coinbaseApi;
+  std::string coinbaseSecret;
+  double coinbaseFees;
+  bool coinbaseEnable;
 
   bool sendEmail;
   std::string senderAddress;

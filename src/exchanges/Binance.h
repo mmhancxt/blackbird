@@ -1,6 +1,5 @@
 #pragma once
 #include "Market.h"
-#include "quote_t.h"
 #include <string>
 
 class Binance final : public Market
@@ -13,7 +12,7 @@ public:
 
     bool RetrieveInstruments() override;
 
-    quote_t GetQuote(const std::string& currencyPair) override;
+    // quote_t GetQuote(const std::string& currencyPair) override;
 
     double GetAvail(std::string currency) override;
 

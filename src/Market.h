@@ -1,8 +1,8 @@
 #pragma once
 
 #include <string>
+#include <set>
 #include "parameters.h"
-#include "quote_t.h"
 #include "Instrument.h"
 #include "Dico.h"
 #include "spdlog/spdlog.h"
@@ -29,18 +29,25 @@ public:
 
     virtual bool RetrieveInstruments() = 0;
 
-    virtual quote_t GetQuote (const std::string& currencyPair) = 0;
-    virtual bool GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,
-        std::unordered_map<std::string, quote_t>& quotes)
-    {
-        return false;
-    }
+    // virtual quote_t GetQuote (const std::string& currencyPair) = 0;
+    // virtual bool GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,
+    //     std::unordered_map<std::string, quote_t>& quotes)
+    // {
+    //     return false;
+    // }
     virtual double GetAvail(std::string currency) = 0;
     virtual std::string SendLongOrder(std::string direction, double quantity, double price) = 0;
     virtual std::string SendShortOrder(std::string direction, double quantity, double price) = 0;
     virtual bool IsOrderComplete(std::string orderId) = 0;
     virtual double GetActivePos() = 0;
     virtual double GetLimitPrice(double volume, bool isBid) = 0;
+
+    void AddSubscriptionSymbol(const std::string& symbol)
+    {
+        m_subscriptionSymbols.insert(symbol);
+    }
+
+    const std::set<std::string>& GetSubscriptionSymbols() const { return m_subscriptionSymbols; }
 
 protected:
 
@@ -52,4 +59,5 @@ protected:
     double m_fees { 0 };
     bool m_requestMultiSymbols { false };
     Dico m_dico;
+    std::set<std::string> m_subscriptionSymbols;
 };

@@ -1,48 +1,48 @@
 #include "Instrument.h"
 #include <cmath>
 
-void Instrument::SafeUpdateData(quote_t quote) {
+void Instrument::SafeUpdateData(const Limit& limit) {
     std::lock_guard<std::mutex> lock(m_feedMutex);
     m_hasUpdate = true;
-    m_bid = quote.bid();
-    m_ask = quote.ask();
+    m_limit = limit;
 }
 
 unsigned Instrument::GetId() const { return m_id; }
 
-std::pair<double, double> Instrument::SafeGetBidAsk()
+Limit Instrument::SafeGetBestLimit()
 {
     std::lock_guard<std::mutex> lock(m_feedMutex);
     m_hasUpdate = false;
-    return {m_bid, m_ask};
+    return m_limit;
 }
 
-std::pair<double, double> Instrument::SafeGetBidAskReadOnly()
+Limit Instrument::SafeGetBestLimitReadOnly()
 {
     std::lock_guard<std::mutex> lock(m_feedMutex);
-    return {m_bid, m_ask};
+    return m_limit;
 }
 
 double Instrument::SafeGetBid()  const
 {
     std::lock_guard<std::mutex> lock(m_feedMutex);
-    return m_bid;
+    return 0;
 }
 
 double Instrument::SafeGetAsk()  const
 {
     std::lock_guard<std::mutex> lock(m_feedMutex);
-    return m_ask;
+    return 0;
 }
 
 double Instrument::SafeGetMidPrice() const
 {
-    std::lock_guard<std::mutex> lock(m_feedMutex);
-    if (m_bid > 0.0 && m_ask > 0.0) {
-        return (m_bid + m_ask) / 2.0;
-    } else {
-        return 0.0;
-    }
+    return 0;
+    // std::lock_guard<std::mutex> lock(m_feedMutex);
+    // if (m_bid > 0.0 && m_ask > 0.0) {
+    //     return (m_bid + m_ask) / 2.0;
+    // } else {
+    //     return 0.0;
+    // }
 }
 
 std::string Instrument::GetExchName()  const { return m_exchName; }
