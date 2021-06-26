@@ -1,20 +1,15 @@
 cmake_minimum_required(VERSION 3.12)
 
+include(Environment.cmake)
+
 project(blackbird)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 include(cotire)
 
-set (OPENSSL_ROOT_DIR "/usr/local/openssl-1.1.1k")
-set (OPENSSL_CRYPTO_LIBRARY "/usr/local/openssl-1.1.1k/lib/libcrypto.dylib")
-set (OPENSSL_SSL_LIBRARY "/usr/local/openssl-1.1.1k/lib/libssl.1.1.dylib")
-set (OPENSSL_INCLUDE_DIR "/usr/local/openssl-1.1.1k/include")
-set (BOOST_ROOT "/Users/Xavier/programs/cpp/boost_1_76_0")
-set (RAPIDJSON_INCLUDE_DIR "/Users/Xavier/programs/cpp/rapidjson/include")
-set (WEBSOCKETPP_INCLUDE_DIR "/Users/Xavier/programs/cpp/websocketpp")
-
 set(CMAKE_C_FLAGS_DEBUG "-O0 -g")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g")
+#set(CMAKE_EXE_LINKER_FLAGS "-Wl,--copy-dt-needed-entries")
 
 find_package(CURL)
 find_package(Jansson)

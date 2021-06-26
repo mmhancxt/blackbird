@@ -2,7 +2,7 @@
 #define PARAMETERS_H
 
 #include "unique_sqlite.hpp"
-#include "instrument.h"
+#include "Instrument.h"
 
 #include <fstream>
 #include <string>
