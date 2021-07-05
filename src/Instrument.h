@@ -3,6 +3,7 @@
 #include "Limit.h"
 #include <string>
 #include <mutex>
+#include <iostream>
 
 // Contains all the information for a given exchange,
 // like fees and wether we can short on that exchange.

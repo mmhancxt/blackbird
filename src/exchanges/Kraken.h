@@ -14,6 +14,8 @@ public:
 
     bool RetrieveInstruments() override;
 
+    bool InitializeWallet() override { return true; }
+
     // quote_t GetQuote(const std::string& currencyPair) override;
 
     // bool GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,

@@ -27,15 +27,17 @@ public:
     // *before* and *after* an arbitrage trade.
     // This is used to compute the performance of the trade,
     // by comparing the balance before and after the trade.
-    struct Balance
-    {
-        double leg1, leg2;
-        double leg1After, leg2After;
-    };
+    // struct Balance
+    // {
+    //     double leg1, leg2;
+    //     double leg1After, leg2After;
+    // };
 private:
     bool InitializeMarkets();
 
     void InitializeInstruments();
+
+    bool InitializeWallets();
 
 private:
     Parameters& m_params;

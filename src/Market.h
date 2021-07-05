@@ -6,6 +6,7 @@
 #include "Instrument.h"
 #include "Dico.h"
 #include "spdlog/spdlog.h"
+#include "Wallet.h"
 
 class Market
 {
@@ -29,6 +30,8 @@ public:
 
     virtual bool RetrieveInstruments() = 0;
 
+    virtual bool InitializeWallet() = 0;
+
     // virtual quote_t GetQuote (const std::string& currencyPair) = 0;
     // virtual bool GetQuotesForMultiSymbols(const std::vector<std::string>& ccyPairs,
     //     std::unordered_map<std::string, quote_t>& quotes)
@@ -47,6 +50,11 @@ public:
         m_subscriptionSymbols.insert(symbol);
     }
 
+    void AddSubscriptionAsset(const std::string& asset)
+    {
+       m_subscriptionAssets.insert(asset);
+    }
+
     const std::set<std::string>& GetSubscriptionSymbols() const { return m_subscriptionSymbols; }
 
 protected:
@@ -59,5 +67,7 @@ protected:
     double m_fees { 0 };
     bool m_requestMultiSymbols { false };
     Dico m_dico;
+    std::unique_ptr<Wallet> m_wallet;
     std::set<std::string> m_subscriptionSymbols;
+    std::set<std::string> m_subscriptionAssets;
 };

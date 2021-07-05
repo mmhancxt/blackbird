@@ -12,6 +12,8 @@ public:
 
     bool RetrieveInstruments() override;
 
+    bool InitializeWallet() override;
+
     // quote_t GetQuote(const std::string& currencyPair) override;
 
     double GetAvail(std::string currency) override;
@@ -25,6 +27,4 @@ public:
     double GetActivePos() override;
 
     double GetLimitPrice(double volume, bool isBid) override;
-
-    void testBinance();
 };
