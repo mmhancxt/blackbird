@@ -12,6 +12,8 @@ public:
 
     bool RetrieveInstruments() override;
 
+    bool InitializeWallet() override { return true; }
+
     double GetAvail(std::string currency) override { return 0; };
 
     std::string SendLongOrder(std::string direction, double quantity, double price) override { return "";}

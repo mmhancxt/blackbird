@@ -29,6 +29,9 @@ bool BlackBird::Initialize()
         m_log->info("Demo mode: trades won't be generated");
     }
 
+    std::cout << "Log file generated: " << m_logFileName << "\nBlackbird is running... (pid "
+        << getpid() << ")\n" << std::endl;
+
     if (!InitializeMarkets())
     {
       m_log->error("Failed to initialize markets");
@@ -36,9 +39,6 @@ bool BlackBird::Initialize()
     }
 
     InitializeInstruments();
-
-    std::cout << "Log file generated: " << m_logFileName << "\nBlackbird is running... (pid "
-        << getpid() << ")\n" << std::endl;
 
     // Inits cURL connections
     m_params.curl = curl_easy_init();
@@ -59,9 +59,20 @@ bool BlackBird::Initialize()
     }
     m_log->info("---");
     m_log->info("[ Current balances ]");
+
     // Gets the the balances from every exchange
     // This is only done when not in Demo mode.
     // TODO
+    for (auto& p : m_markets)
+    {
+       const auto& marketName = p.first;
+       auto& market = p.second;
+       if (!market->InitializeWallet())
+       {
+          m_log->error("Failed to initialize wallet for {}", marketName);
+       }
+    }
+
     // std::vector<Balance> balance(numExch);
     // if (!m_params.isDemoMode)
     //     std::transform(getAvail, getAvail + numExch,
@@ -209,6 +220,8 @@ void BlackBird::InitializeInstruments()
         if (instr->ShouldSubscribe())
         {
           market->AddSubscriptionSymbol(symbol);
+          market->AddSubscriptionAsset(instr->GetBaseCurrency());
+          market->AddSubscriptionAsset(instr->GetQuoteCurrency());
           m_allSubscriptionSymbols.insert(symbol);
         }
       }

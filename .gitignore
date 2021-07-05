@@ -4,11 +4,13 @@
 *.a
 *.swp
 blackbird
-blackbird.db
+blackbird*.db
 blackbird.conf
+Environment.cmake
 sqlite3
 core
 build
 .DS_Store
 blackbird.db-journal
 test.conf
+include/**

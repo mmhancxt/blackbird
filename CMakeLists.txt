@@ -15,16 +15,20 @@ find_package(CURL)
 find_package(Jansson)
 find_package(OpenSSL)
 find_package(SQLite3)
+find_package(GTest)
 find_package(Boost 1.76 REQUIRED)
 find_package(spdlog REQUIRED)
 
-file(GLOB SOURCES
+file(GLOB LIB_SRCS
     src/*.cpp
     src/exchanges/Binance.cpp
     src/exchanges/Kraken.cpp
     src/exchanges/Coinbase.cpp
     src/utils/*.cpp)
-add_executable(${PROJECT_NAME} ${SOURCES})
+
+list(REMOVE_ITEM LIB_SRCS src/main.cpp)
+
+add_library(${PROJECT_NAME} STATIC ${LIB_SRCS})
 
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR
     "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
@@ -57,6 +61,33 @@ target_link_libraries(${PROJECT_NAME} PRIVATE ${CURL_LIBRARIES}
                                       ${OPENSSL_LIBRARIES}
                                       ${SQLITE3_LIBRARIES}
                                       spdlog::spdlog)
-install(TARGETS ${PROJECT_NAME}
+
+add_executable(blackbirdbin src/main.cpp)
+target_link_libraries(blackbirdbin ${PROJECT_NAME})
+set_target_properties(blackbirdbin PROPERTIES
+                                   CXX_STANDARD 17
+                                   CXX_STANDARD_REQUIRED YES
+                                   CXX_EXTENSIONS NO
+                                   OUTPUT_NAME ${PROJECT_NAME})
+
+install(TARGETS blackbirdbin
         RUNTIME DESTINATION ${CMAKE_BINARY_DIR}/..)
 cotire(${PROJECT_NAME})
+
+enable_testing()
+
+add_executable(
+  binanceTest
+  test/BinanceTest.cpp
+)
+set_target_properties(binanceTest PROPERTIES CXX_STANDARD 17)
+
+target_include_directories(binanceTest PRIVATE ${PROJECT_SOURCE_DIR}/src)
+target_link_libraries(
+  binanceTest
+  ${PROJECT_NAME}
+  GTest::GTest
+)
+
+include(GoogleTest)
+gtest_discover_tests(binanceTest)
