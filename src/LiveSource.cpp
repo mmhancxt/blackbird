@@ -57,7 +57,13 @@ void LiveSource::Subscribe()
                 continue;
             }
             const std::string subscriptionID = marketName + "|" + symbol;
-            Subscription subscription(marketName, symbol, "MARKET_DEPTH", "", subscriptionID);
+            std::string option = "";
+            if (m_params.mdUpdateIntervalMs != 0)
+            {
+               option += "CONFLATE_INTERVAL_MILLISECONDS=";
+               option += std::to_string(m_params.mdUpdateIntervalMs);
+            }
+            Subscription subscription(marketName, symbol, "MARKET_DEPTH", option, subscriptionID);
             exchangeInstrumentSymbolMap[marketName][symbol] = instr->GetWSName();
             subscriptionList.push_back(subscription);
         }

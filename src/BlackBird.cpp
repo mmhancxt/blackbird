@@ -186,7 +186,10 @@ void BlackBird::InitializeInstruments()
          const auto& symbol = p.first;
          Instrument* instr = p.second;
 
-         if (instr->ShouldSubscribe() == false)
+         if (instr->ShouldSubscribe() == false
+            && instr->GetQuoteCurrency() != m_params.bannedQuoteAsset
+            && (m_params.tradedBaseAsset == "*" || instr->GetBaseCurrency() == m_params.tradedBaseAsset)
+            && (m_params.tradedQuoteAsset == "*" || instr->GetQuoteCurrency() == m_params.tradedQuoteAsset))
          {
             auto it2(it);
             ++it2;
@@ -269,7 +272,7 @@ void BlackBird::Run()
 
                if (instr1->IsInMarket())
                {
-                  m_log->info("DEBUG: openOperations size is {}", openOperations.size());
+                  // m_log->info("DEBUG: openOperations size is {}", openOperations.size());
                   auto iter = openOperations.find(symbol);
                   if (iter != openOperations.end())
                   {
@@ -322,7 +325,7 @@ void BlackBird::Run()
                         res.ExitTime = currTime;
                         res.PriceOut[0] = otherSide ? bid1Price : bid2Price;
                         res.PriceOut[1] = otherSide ? ask2Price : ask1Price;
-                        res.printExitInfo(m_log);
+                        //res.printExitInfo(m_log);
                      }
                   }
                   else
@@ -341,7 +344,7 @@ void BlackBird::Run()
                      const auto& dico2 = market2->GetDico();
                      auto* instr2 = dico2.GetInstrumentBySymbol(symbol);
 
-                     if (instr2 == nullptr || instr2->ShouldSubscribe() == false)
+                     if (instr2 == nullptr || instr2->ShouldSubscribe() == false || instr2->IsInMarket())
                      {
                         ++it2;
                         continue;
@@ -366,7 +369,7 @@ void BlackBird::Run()
                      if (profit1 > 0 && ask2Price != 0)
                      {
                         std::stringstream ss;
-                        ss << "Found opportunity for " << symbol << " : " << marketName1 << " : " << std::setprecision(8) << bid1Price << "/"
+                        ss << "Found opportunity for " << symbol << " : " << marketName1 << " : " << std::fixed << std::setprecision(8) << bid1Price << " / "
                            << marketName2 << " : " << ask2Price << " profit " << profit1 << " " << profit1/ask2Price * 10000 << " bps";
                         m_log->info(ss.str());
                         found = true;
@@ -385,12 +388,12 @@ void BlackBird::Run()
                         instr2->SetInMarket(true);
                         openOperations[symbol] = res;
 
-                        m_log->info("DEBUG: after 1 found openOperations size is {}", openOperations.size());
+                        //m_log->info("DEBUG: after 1 found openOperations size is {}", openOperations.size());
                      }
                      else if (profit2 > 0 && ask1Price != 0)
                      {
                         std::stringstream ss;
-                        ss << "Found opportunity for " << symbol << " : " << marketName2 << " : " << std::setprecision(8) << bid2Price << "/"
+                        ss << "Found opportunity for " << symbol << " : " << marketName2 << " : " << std::fixed << std::setprecision(8) << bid2Price << " / "
                            << marketName1 << " : " << ask1Price << " profit " << profit2 << " " << profit2/ask2Price * 10000 << " bps";
                         m_log->info(ss.str());
                         found = true;
@@ -409,7 +412,7 @@ void BlackBird::Run()
                         instr2->SetInMarket(true);
                         openOperations[symbol] = res;
 
-                        m_log->info("DEBUG: after 2 found openOperations size is {}", openOperations.size());
+                        //m_log->info("DEBUG: after 2 found openOperations size is {}", openOperations.size());
                      }
 
                      if (found)
@@ -417,7 +420,7 @@ void BlackBird::Run()
                         currTime = std::time(0);
                         res.id = resultId++;
                         res.EntryTime = currTime;
-                        res.printEntryInfo(m_log);
+                        //res.printEntryInfo(m_log);
                      }
                      
                      ++it2;

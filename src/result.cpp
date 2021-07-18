@@ -29,8 +29,10 @@ double Result::getTradeLengthInMinute() const {
 }
 
 void Result::printEntryInfo(std::shared_ptr<spdlog::logger> logFile) const {
-  logFile->info("\n[ ENTRY FOUND ]");
-  logFile->info("   Date & Time:       {}", printDateTime(EntryTime));
+  logFile->info("");
+  logFile->info("  [ ENTRY FOUND ]");
+  logFile->info("   Symbol:            {}", Symbol);
+  //logFile->info("   Date & Time:       {}", printDateTime(EntryTime));
   logFile->info("   Exchange Long:     {}", ExchName[0]);
   logFile->info("   Exchange Short:    {}", ExchName[1]);
   logFile->info("   Fees:              {}% / {}%", Fees[0] * 100.0, Fees[1] * 100.0);
@@ -38,20 +40,24 @@ void Result::printEntryInfo(std::shared_ptr<spdlog::logger> logFile) const {
   logFile->info("   Price Short:       {}", PriceIn[1]);
   logFile->info("   Spread:            {}%", SpreadIn * 100.0);
   logFile->info("   Cash used:         {} on each exchange", exposure);
-  logFile->info("   Exit Target:       {}%\n", ExitTarget * 100.0);
+  logFile->info("   Exit Target:       {}%", ExitTarget * 100.0);
+  logFile->info("");
 }
 
 void Result::printExitInfo(std::shared_ptr<spdlog::logger> logFile) const {
-  logFile->info("\n[ EXIT FOUND ]");
-  logFile->info("   Date & Time:       {}", printDateTime(ExitTime));
-  logFile->info("   Duration:          {} minutes", getTradeLengthInMinute());
+  logFile->info("");
+  logFile->info("  [ EXIT FOUND ]");
+  logFile->info("   Symbol:            {}", Symbol);
+  //logFile->info("   Date & Time:       {}", printDateTime(ExitTime));
+  //logFile->info("   Duration:          {} minutes", getTradeLengthInMinute());
   logFile->info("   Price Long:        {}", PriceOut[0]);
   logFile->info("   Price Short:       {}", PriceOut[1]);
   logFile->info("   Spread:            {}%", SpreadOut * 100.0);
   logFile->info("   ---------------------------");
   logFile->info("   Target Perf Long:  {}% (fees incl.)", targetPerfLong()  * 100.0);
   logFile->info("   Target Perf Short: {}% (fees incl.)", targetPerfShort() * 100.0);
-  logFile->info("   ---------------------------\n");
+  logFile->info("   ---------------------------");
+  logFile->info("");
 }
 
 // not sure to understand how this function is implemented ;-)
