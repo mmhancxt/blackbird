@@ -24,6 +24,7 @@ file(GLOB LIB_SRCS
     src/exchanges/Binance.cpp
     src/exchanges/Kraken.cpp
     src/exchanges/Coinbase.cpp
+    src/strategy/PerfectArbitrageStrategy.cpp
     src/utils/*.cpp)
 
 list(REMOVE_ITEM LIB_SRCS src/main.cpp)

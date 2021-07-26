@@ -30,6 +30,10 @@ struct Parameters {
   double orderBookFactor;
   bool isDemoMode;
   std::vector<std::string> tradedPair;
+  std::string bannedQuoteAsset;
+  std::string tradedBaseAsset;
+  std::string tradedQuoteAsset;
+  unsigned int mdUpdateIntervalMs;
   //std::string leg1;
   //std::string leg2;
   bool verbose;

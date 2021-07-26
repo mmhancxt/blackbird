@@ -34,10 +34,10 @@ void sendEmail(const Result &res, Parameters &params) {
   oss << "        <td style=\\\"" << tdStyle << "width:70px;\\\">Return</td>";
   oss << "      </tr>";
   oss << "      <tr>";
-  oss << "        <td style=\\\"" << tdStyle << "\\\">" << printDateTime(res.entryTime) << "</td>";
-  oss << "        <td style=\\\"" << tdStyle << "\\\">" << printDateTime(res.exitTime) << "</td>";
-  oss << "        <td style=\\\"" << tdStyle << "\\\">" << res.exchNameLong << "</td>";
-  oss << "        <td style=\\\"" << tdStyle << "\\\">" << res.exchNameShort << "</td>";
+  oss << "        <td style=\\\"" << tdStyle << "\\\">" << printDateTime(res.EntryTime) << "</td>";
+  oss << "        <td style=\\\"" << tdStyle << "\\\">" << printDateTime(res.ExitTime) << "</td>";
+  oss << "        <td style=\\\"" << tdStyle << "\\\">" << res.ExchName[0] << "</td>";
+  oss << "        <td style=\\\"" << tdStyle << "\\\">" << res.ExchName[1] << "</td>";
   oss << "        <td style=\\\"" << tdStyle << "\\\">\\$" << res.exposure * 2.0 << "</td>";
   oss << "        <td style=\\\"" << tdStyle << "\\\">\\$" << res.leg2TotBalanceAfter - res.leg2TotBalanceBefore << "</td>";
 

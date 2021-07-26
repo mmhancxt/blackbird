@@ -33,6 +33,8 @@ public:
     double SafeGetMidPrice() const;
     std::string GetExchName() const;
     double GetFees() const;
+    void SetInMarket(bool val) { m_inMarket = val; }
+    bool IsInMarket() const { return m_inMarket; }
     bool GetHasShort() const;
 
     bool HasMarketUpdate() const;
@@ -65,6 +67,7 @@ private:
     std::string m_baseCurrency;
     std::string m_quoteCurrency;
     double m_fees {0};
+    bool m_inMarket {false};
     bool m_hasShort {true};
     bool m_hasUpdate {false};
     bool m_shouldSubscribe { false };

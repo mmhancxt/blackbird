@@ -26,6 +26,7 @@ public:
 			digest_.push_back(int(result[i]));
 		}
 		HMAC_CTX_free(ctx);
+      delete result;
 	}
 
 	std::string hex_digest() {

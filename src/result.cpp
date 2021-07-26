@@ -6,11 +6,11 @@
 
 
 double Result::targetPerfLong() const {
-  return (priceLongOut - priceLongIn) / priceLongIn - 2.0 * feesLong;
+  return (PriceOut[0] - PriceIn[0]) / PriceIn[0] - 2.0 * Fees[0];
 }
 
 double Result::targetPerfShort() const {
-  return (priceShortIn - priceShortOut) / priceShortIn - 2.0 * feesShort;
+  return (PriceIn[1] - PriceOut[1]) / PriceIn[1] - 2.0 * Fees[1];
 }
 
 double Result::actualPerf() const {
@@ -24,41 +24,45 @@ double Result::actualPerf() const {
 }
 
 double Result::getTradeLengthInMinute() const {
-  if (entryTime > 0 && exitTime > 0) return (exitTime - entryTime) / 60.0;
+  if (EntryTime > 0 && ExitTime > 0) return (ExitTime - EntryTime) / 60.0;
   return 0;
 }
 
-void Result::printEntryInfo(std::ostream &logFile) const {
-  logFile.precision(2);
-  logFile << "\n[ ENTRY FOUND ]" << std::endl;
-  logFile << "   Date & Time:       "  << printDateTime(entryTime) << std::endl;
-  logFile << "   Exchange Long:     "  << exchNameLong <<  " (id " << idExchLong  << ")" << std::endl;
-  logFile << "   Exchange Short:    "  << exchNameShort << " (id " << idExchShort << ")" << std::endl;
-  logFile << "   Fees:              "  << feesLong * 100.0 << "% / " << feesShort * 100.0 << "%" << std::endl;
-  logFile << "   Price Long:        " << priceLongIn << " (target)" << std::endl;
-  logFile << "   Price Short:       " << priceShortIn << " (target)" << std::endl;
-  logFile << "   Spread:            "  << spreadIn * 100.0 << "%" << std::endl;
-  logFile << "   Cash used:         " << exposure << " on each exchange" << std::endl;
-  logFile << "   Exit Target:       "  << exitTarget * 100.0 << "%" << std::endl;
-  logFile << std::endl;
+void Result::printEntryInfo(std::shared_ptr<spdlog::logger> logFile) const {
+  logFile->info("");
+  logFile->info("  [ ENTRY FOUND ]");
+  logFile->info("   Symbol:            {}", Symbol);
+  //logFile->info("   Date & Time:       {}", printDateTime(EntryTime));
+  logFile->info("   Exchange Long:     {}", ExchName[0]);
+  logFile->info("   Exchange Short:    {}", ExchName[1]);
+  logFile->info("   Fees:              {}% / {}%", Fees[0] * 100.0, Fees[1] * 100.0);
+  logFile->info("   Price Long:        {}", PriceIn[0]);
+  logFile->info("   Price Short:       {}", PriceIn[1]);
+  logFile->info("   Spread:            {}%", SpreadIn * 100.0);
+  logFile->info("   Cash used:         {} on each exchange", exposure);
+  logFile->info("   Exit Target:       {}%", ExitTarget * 100.0);
+  logFile->info("");
 }
 
-void Result::printExitInfo(std::ostream &logFile) const {
-  logFile.precision(2);
-  logFile << "\n[ EXIT FOUND ]" << std::endl;
-  logFile << "   Date & Time:       "  << printDateTime(exitTime) << std::endl;
-  logFile << "   Duration:          "  << getTradeLengthInMinute() << " minutes" << std::endl;
-  logFile << "   Price Long:        " << priceLongOut << " (target)" << std::endl;
-  logFile << "   Price Short:       " << priceShortOut << " (target)" << std::endl;
-  logFile << "   Spread:            "  << spreadOut * 100.0 << "%" << std::endl;
-  logFile << "   ---------------------------"  << std::endl;
-  logFile << "   Target Perf Long:  "  << targetPerfLong()  * 100.0 << "% (fees incl.)" << std::endl;
-  logFile << "   Target Perf Short: "  << targetPerfShort() * 100.0 << "% (fees incl.)" << std::endl;
-  logFile << "   ---------------------------\n"  << std::endl;
+void Result::printExitInfo(std::shared_ptr<spdlog::logger> logFile) const {
+  logFile->info("");
+  logFile->info("  [ EXIT FOUND ]");
+  logFile->info("   Symbol:            {}", Symbol);
+  //logFile->info("   Date & Time:       {}", printDateTime(ExitTime));
+  //logFile->info("   Duration:          {} minutes", getTradeLengthInMinute());
+  logFile->info("   Price Long:        {}", PriceOut[0]);
+  logFile->info("   Price Short:       {}", PriceOut[1]);
+  logFile->info("   Spread:            {}%", SpreadOut * 100.0);
+  logFile->info("   ---------------------------");
+  logFile->info("   Target Perf Long:  {}% (fees incl.)", targetPerfLong()  * 100.0);
+  logFile->info("   Target Perf Short: {}% (fees incl.)", targetPerfShort() * 100.0);
+  logFile->info("   ---------------------------");
+  logFile->info("");
 }
 
 // not sure to understand how this function is implemented ;-)
 void Result::reset() {
+   /*
   typedef std::remove_reference< decltype(minSpread[0][0]) >::type arr2d_t;
   auto arr2d_size = sizeof(minSpread) / sizeof(arr2d_t);
   Result tmp {};
@@ -69,10 +73,12 @@ void Result::reset() {
   std::fill_n(reinterpret_cast<arr2d_t *>(minSpread), arr2d_size, 1.0);
   std::fill_n(reinterpret_cast<arr2d_t *>(maxSpread), arr2d_size, -1.0);
   std::fill_n(reinterpret_cast<arr2d_t *>(trailing), arr2d_size, -1.0);
+  */
 }
 
 bool Result::loadPartialResult(std::string filename) {
 
+   /*
   std::ifstream resFile(filename, std::ifstream::ate);
   if(!resFile || int(resFile.tellg()) == 0) return false;
 
@@ -94,11 +100,13 @@ bool Result::loadPartialResult(std::string filename) {
           >> minSpread[idExchLong][idExchShort]
           >> trailing[idExchLong][idExchShort]
           >> trailingWaitCount[idExchLong][idExchShort];
+          */
 
   return true;
 }
 
 void Result::savePartialResult(std::string filename) {
+   /*
   std::ofstream resFile(filename, std::ofstream::trunc);
 
   resFile << id << '\n'
@@ -121,4 +129,5 @@ void Result::savePartialResult(std::string filename) {
           << trailing[idExchLong][idExchShort] << '\n'
           << trailingWaitCount[idExchLong][idExchShort]
           << std::endl;
+          */
 }

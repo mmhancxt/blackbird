@@ -106,6 +106,11 @@ Parameters::Parameters(std::string fileName) {
     }
   }
 
+  bannedQuoteAsset = getParameter("BannedQuoteAsset", configFile);
+  tradedBaseAsset = getParameter("TradedBaseAsset", configFile);
+  tradedQuoteAsset = getParameter("TradedQuoteAsset", configFile);
+  mdUpdateIntervalMs = getUnsigned(getParameter("MarketDataUpdateInvervalMs", configFile));
+
   //leg1 = getParameter("Leg1", configFile);
   //leg2 = getParameter("Leg2", configFile);
   verbose = getBool(getParameter("Verbose", configFile));
