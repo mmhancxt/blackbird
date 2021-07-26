@@ -8,6 +8,7 @@
 
 struct Parameters;
 class Dico;
+class PerfectArbitrageStrategy;
 
 class BlackBird
 {
@@ -37,7 +38,7 @@ private:
 
     void InitializeInstruments();
 
-    bool InitializeWallets();
+    bool InitializeStrategies();
 
 private:
     Parameters& m_params;
@@ -45,6 +46,7 @@ private:
     const std::string& m_logFileName;
     std::unordered_map<std::string, std::unique_ptr<Market>> m_markets;
     std::set<std::string> m_allSubscriptionSymbols;
+    PerfectArbitrageStrategy* m_strategy { nullptr };
 
     bool m_inMarket { false };
 };
