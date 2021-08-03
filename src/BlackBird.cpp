@@ -11,6 +11,7 @@
 #include "Market.h"
 #include "LiveSource.h"
 #include "strategy/PerfectArbitrageStrategy.h"
+#include "indicator/IndicatorFactory.h"
 
 #include <iostream>
 #include <iomanip>
@@ -71,6 +72,12 @@ bool BlackBird::Initialize()
       {
          m_log->error("Failed to initialize wallet for {}", marketName);
       }
+   }
+
+   if (!InitializeIndicators())
+   {
+      m_log->error("Failed to initialize indicators");
+      return false;
    }
 
    if (!InitializeStrategies())
@@ -231,6 +238,30 @@ void BlackBird::InitializeInstruments()
       }
       m_log->info(ss.str());
    }
+}
+
+bool BlackBird::InitializeIndicators()
+{
+   IndicatorFactory factory(m_timeTriggeredManager);
+   const auto& indicatorList = m_params.indicatorList;
+   for (auto it = m_markets.begin(); it != m_markets.end(); ++it)
+   {
+      const auto* market = it->second.get();
+      const auto& symbols = market->GetSubscriptionSymbols();
+      for (const auto& symbol : symbols)
+      {
+         auto* instr = market->GetInstrumentBySymbol(symbol);
+         if (instr != nullptr)
+         {
+            for (const auto& indicName : indicatorList)
+            {
+               IIndicator* indicator = factory.CreateIndicator(indicName, instr);
+               instr->AddIndicator(indicName, indicator);
+            }
+         }
+      }
+   }
+   return true;
 }
 
 bool BlackBird::InitializeStrategies()

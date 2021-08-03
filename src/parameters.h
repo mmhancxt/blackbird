@@ -48,6 +48,8 @@ struct Parameters {
   unsigned volatilityPeriod;
   std::string cacert;
 
+  std::vector<std::string> indicatorList;
+
   std::string bitfinexApi;
   std::string bitfinexSecret;
   double bitfinexFees;

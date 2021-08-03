@@ -123,6 +123,12 @@ Parameters::Parameters(std::string fileName) {
   volatilityPeriod = getUnsigned(getParameter("VolatilityPeriod", configFile));
   cacert = getParameter("CACert", configFile);
 
+  const std::string indicList = getParameter("IndicatorList", configFile);
+  if (!indicList.empty())
+  {
+    Split(indicList, indicatorList, ',');
+  }
+
   bitfinexApi = getParameter("BitfinexApiKey", configFile);
   bitfinexSecret = getParameter("BitfinexSecretKey", configFile);
   bitfinexFees = getDouble(getParameter("BitfinexFees", configFile));
