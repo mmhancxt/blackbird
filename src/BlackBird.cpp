@@ -283,6 +283,7 @@ void BlackBird::Run()
    // Main analysis loop
    while (true)
    {
+      m_timeTriggeredManager.Work();
       m_strategy->Poll();
    }
 

@@ -6,7 +6,7 @@ void TimeTriggeredManager::AddEvent(ITimeTriggeredEvent* event)
    const std::chrono::time_point<std::chrono::system_clock> now =
         std::chrono::system_clock::now();
    m_events[event] = now;
-   event->TimeTriggered(now);
+   event->OnTimeTriggeredUpdate(now);
 }
 
 void TimeTriggeredManager::Work()
@@ -20,7 +20,7 @@ void TimeTriggeredManager::Work()
       if (now - lastTriggeredTime >= event->GetInterval())
       {
          m_events[event] = now;
-         event->TimeTriggered(now);
+         event->OnTimeTriggeredUpdate(now);
       }
    }
 }

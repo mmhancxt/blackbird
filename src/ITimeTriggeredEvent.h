@@ -11,7 +11,7 @@ public:
 
    virtual ~ITimeTriggeredEvent() = default;
 
-   virtual void TimeTriggered(const std::chrono::time_point<std::chrono::system_clock>& now) = 0;
+   virtual void OnTimeTriggeredUpdate(const std::chrono::time_point<std::chrono::system_clock>& now) = 0;
 
    const std::chrono::milliseconds GetInterval() const { return m_inverval; }
 

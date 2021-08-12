@@ -8,10 +8,11 @@ IIndicator* IndicatorFactory::CreateIndicator(const std::string& name, Instrumen
 {
    if (name == "PerfIndicator")
    {
-      PerfIndicator* perfIndicator = new PerfIndicator(name, instr);
+      PerfIndicator* perfIndicator = new PerfIndicator(name, instr,
+            100, 1000);
       IIndicator* indicator = perfIndicator;
-      //ITimeTriggeredEvent* event = perfIndicator;
-      //m_timeTriggeredManager.AddEvent(event);
+      ITimeTriggeredEvent* event = perfIndicator;
+      m_timeTriggeredManager.AddEvent(event);
       return indicator;
    }
    else

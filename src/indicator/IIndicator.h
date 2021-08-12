@@ -1,4 +1,4 @@
-#pragma once 
+#pragma once
 
 class Instrument;
 class IIndicator
@@ -10,14 +10,14 @@ public:
 
    virtual ~IIndicator() {}
 
-   virtual double GetValue() { return val; }
-   virtual double GetQuality() { return quality; }
+   virtual double GetValue() { return m_val; }
+   virtual double GetQuality() { return m_quality; }
 
    virtual void Compute() = 0;
 
 protected:
-   std::string m_name;      
+   std::string m_name;
    Instrument* m_instr;
-   double val = 0;
-   double quality = 0;
+   double m_val = 0;
+   double m_quality = 0;
 };
