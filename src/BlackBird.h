@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "spdlog/spdlog.h"
 #include "Market.h"
+#include "TimeTriggeredManager.h"
 
 struct Parameters;
 class Dico;
@@ -38,6 +39,8 @@ private:
 
     void InitializeInstruments();
 
+    bool InitializeIndicators();
+
     bool InitializeStrategies();
 
 private:
@@ -46,6 +49,7 @@ private:
     const std::string& m_logFileName;
     std::unordered_map<std::string, std::unique_ptr<Market>> m_markets;
     std::set<std::string> m_allSubscriptionSymbols;
+    TimeTriggeredManager m_timeTriggeredManager;
     PerfectArbitrageStrategy* m_strategy { nullptr };
 
     bool m_inMarket { false };
